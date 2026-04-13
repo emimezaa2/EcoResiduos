@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item android:id="@+id/nav_home" android:icon="@drawable/ic_profile" android:title="Dashboard Principal" />
+        <item android:id="@+id/nav_reporte" android:icon="@drawable/ic_menu_reporte" android:title="Nuevo Registro" />
+        <item android:id="@+id/nav_impacto" android:icon="@drawable/ic_menu_impacto" android:title="Mi Impacto" />
+        <item android:id="@+id/nav_bot" android:icon="@drawable/ic_menu_bot" android:title="Asistente Virtual" />
+        <item android:id="@+id/nav_puntos" android:icon="@drawable/ic_menu_puntos" android:title="Mapa de Red" />
+    </group>
+
+    <item android:title="Opciones">
+        <menu>
+            <item android:id="@+id/nav_logout" android:icon="@drawable/ic_logout" android:title="Cerrar Sesión" />
+        </menu>
+    </item>
+</menu>

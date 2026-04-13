@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="bg_light">#F4F6F9</color>
+    <color name="text_dark">#1B4332</color>
+    <color name="text_sub">#64748B</color>
+
+
+    <color name="green_primary">#2D6A4F</color>
+    <color name="green_light">#D8F3DC</color>
+    <color name="green_accent">#40916C</color>
+    <color name="orange_process">#FFB703</color>
+
+
+    <color name="admin_dark">#0F172A</color>
+    <color name="admin_accent">#3B82F6</color>
+    <color name="alert_red">#D90429</color>
+
+    <color name="status_success">#10B981</color> <color name="status_error">#EF4444</color>
+
+</resources>
