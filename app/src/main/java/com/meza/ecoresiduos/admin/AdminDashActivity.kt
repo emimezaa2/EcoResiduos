@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.navigation.NavigationView
 import com.meza.ecoresiduos.R
 import com.meza.ecoresiduos.auth.LoginActivity
 import com.meza.ecoresiduos.db.DatabaseHelper
@@ -26,15 +27,28 @@ class AdminDashActivity : AppCompatActivity() {
         dbHelper = DatabaseHelper(this)
         drawerLayoutAdmin = findViewById(R.id.drawerLayoutAdmin)
 
-        // Botón del Menú
+        // 1. Botón para abrir el menú (Hamburguesa)
         val btnOpenMenuAdmin = findViewById<ImageView>(R.id.btnOpenMenuAdmin)
         btnOpenMenuAdmin.setOnClickListener {
             drawerLayoutAdmin.openDrawer(GravityCompat.START)
-            // Aquí puedes agregar un Toast temporal para Cerrar Sesión hasta que hagamos el menú formal del admin
-            cerrarSesion()
         }
 
-        // Referencias a los botones de navegación
+        // 2. Lógica del Menú Lateral
+        val navViewAdmin = findViewById<NavigationView>(R.id.navViewAdmin)
+        navViewAdmin.setNavigationItemSelectedListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.nav_admin_home -> drawerLayoutAdmin.closeDrawer(GravityCompat.START)
+                R.id.nav_admin_validar -> startActivity(Intent(this, AdminValidarActivity::class.java))
+                R.id.nav_admin_comunidad -> startActivity(Intent(this, AdminComunidadActivity::class.java))
+                R.id.nav_admin_puntos -> startActivity(Intent(this, AdminPuntosActivity::class.java))
+                R.id.nav_admin_bitacora -> startActivity(Intent(this, AdminBitacoraActivity::class.java))
+                R.id.nav_admin_logout -> cerrarSesion()
+            }
+            drawerLayoutAdmin.closeDrawer(GravityCompat.START)
+            true
+        }
+
+        // 3. Referencias a las tarjetas centrales (Grid)
         val cardValidar = findViewById<MaterialCardView>(R.id.cardValidar)
         val cardComunidad = findViewById<MaterialCardView>(R.id.cardComunidad)
         val cardPuntosAdmin = findViewById<MaterialCardView>(R.id.cardPuntosAdmin)
@@ -50,7 +64,6 @@ class AdminDashActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Actualizamos los números cada vez que el admin regresa al dashboard
         actualizarEstadisticas()
     }
 
@@ -61,14 +74,14 @@ class AdminDashActivity : AppCompatActivity() {
 
         val db = dbHelper.readableDatabase
 
-        // 1. Contar Usuarios (Que no sean admin)
+        // Contar Usuarios
         val cursorUsers = db.rawQuery("SELECT COUNT(*) FROM ${DatabaseHelper.TABLE_USERS} WHERE ${DatabaseHelper.COLUMN_USER_ROLE} != 'admin'", null)
         if (cursorUsers.moveToFirst()) {
             tvAdminTotalUsers.text = cursorUsers.getInt(0).toString()
         }
         cursorUsers.close()
 
-        // 2. Sumar todos los Kilos Aprobados históricamente
+        // Sumar Kilos
         val cursorKilos = db.rawQuery("SELECT SUM(${DatabaseHelper.COLUMN_REPORT_PESO}) FROM ${DatabaseHelper.TABLE_REPORTS} WHERE ${DatabaseHelper.COLUMN_REPORT_STATUS} = 'Aprobado'", null)
         if (cursorKilos.moveToFirst()) {
             val totalKilos = cursorKilos.getDouble(0)
@@ -76,7 +89,7 @@ class AdminDashActivity : AppCompatActivity() {
         }
         cursorKilos.close()
 
-        // 3. Contar Tickets Pendientes por validar HOY
+        // Contar Pendientes
         val cursorPendientes = db.rawQuery("SELECT COUNT(*) FROM ${DatabaseHelper.TABLE_REPORTS} WHERE ${DatabaseHelper.COLUMN_REPORT_STATUS} = 'Pendiente'", null)
         if (cursorPendientes.moveToFirst()) {
             tvAdminPendientes.text = cursorPendientes.getInt(0).toString()
@@ -88,6 +101,7 @@ class AdminDashActivity : AppCompatActivity() {
         val prefs = getSharedPreferences("SesionEco", Context.MODE_PRIVATE)
         prefs.edit().clear().apply()
         Toast.makeText(this, "Sesión de Administrador cerrada", Toast.LENGTH_SHORT).show()
+
         val intent = Intent(this, LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)

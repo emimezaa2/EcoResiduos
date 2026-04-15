@@ -2,6 +2,7 @@ package com.meza.ecoresiduos.admin
 
 import android.content.ContentValues
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.View
 import android.widget.*
@@ -23,33 +24,35 @@ class AdminPuntosActivity : AppCompatActivity() {
     private lateinit var dbHelper: DatabaseHelper
     private var idPuntoSeleccionado: Int = -1
 
-    // Referencias a la UI
+    // UI Panel de Edición
     private lateinit var tvSeleccionaPunto: TextView
     private lateinit var layoutEdicionPunto: LinearLayout
     private lateinit var tvNombrePuntoEdicion: TextView
     private lateinit var spinnerEstado: Spinner
-    private lateinit var tvLabelCapacidad: TextView
     private lateinit var sliderCapacidad: Slider
+    private lateinit var tvLabelCapacidad: TextView
     private lateinit var btnGuardar: Button
+
+    // Carrusel de Navegación
+    private lateinit var layoutPuntosRapidos: LinearLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Configuración necesaria para OpenStreetMap
         Configuration.getInstance().userAgentValue = packageName
         setContentView(R.layout.activity_admin_puntos)
 
         dbHelper = DatabaseHelper(this)
 
-        // Vincular vistas
+        // Vinculación
         map = findViewById(R.id.mapAdmin)
         tvSeleccionaPunto = findViewById(R.id.tvSeleccionaPunto)
         layoutEdicionPunto = findViewById(R.id.layoutEdicionPunto)
         tvNombrePuntoEdicion = findViewById(R.id.tvNombrePuntoEdicion)
         spinnerEstado = findViewById(R.id.spinnerEstadoPunto)
-        tvLabelCapacidad = findViewById(R.id.tvLabelCapacidad)
         sliderCapacidad = findViewById(R.id.sliderCapacidad)
+        tvLabelCapacidad = findViewById(R.id.tvLabelCapacidad)
         btnGuardar = findViewById(R.id.btnGuardarPunto)
+        layoutPuntosRapidos = findViewById(R.id.layoutPuntosRapidos)
 
         findViewById<TextView>(R.id.btnBackAdminPuntos).setOnClickListener {
             onBackPressedDispatcher.onBackPressed()
@@ -65,7 +68,6 @@ class AdminPuntosActivity : AppCompatActivity() {
         map.controller.setZoom(16.0)
         map.controller.setCenter(tolucaCentro)
 
-        // Receptor de eventos: Clic largo para crear punto, Clic simple para deseleccionar
         val mReceive = object : MapEventsReceiver {
             override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
                 layoutEdicionPunto.visibility = View.GONE
@@ -85,11 +87,13 @@ class AdminPuntosActivity : AppCompatActivity() {
     }
 
     private fun cargarPuntosDesdeBD() {
-        // Limpiamos marcadores actuales para no duplicar
         map.overlays.removeAll { it is Marker }
+        layoutPuntosRapidos.removeAllViews()
 
         val db = dbHelper.readableDatabase
         val cursor = db.rawQuery("SELECT * FROM ${DatabaseHelper.TABLE_PUNTOS}", null)
+
+        var primerPunto: GeoPoint? = null
 
         if (cursor.moveToFirst()) {
             do {
@@ -100,14 +104,14 @@ class AdminPuntosActivity : AppCompatActivity() {
                 val cap = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PUNTO_CAPACIDAD))
                 val estado = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PUNTO_ESTADO))
 
-                val marker = Marker(map)
-                marker.position = GeoPoint(lat, lon)
-                marker.title = nombre
+                val geoPoint = GeoPoint(lat, lon)
+                if (primerPunto == null) primerPunto = geoPoint
 
-                // Si el contenedor está lleno, pintamos el pin de rojo
-                if (cap >= 90) {
-                    marker.icon.setTint(Color.RED)
-                }
+                // Marcador en el mapa
+                val marker = Marker(map)
+                marker.position = geoPoint
+                marker.title = nombre
+                if (cap >= 90) marker.icon.setTint(Color.RED)
 
                 marker.setOnMarkerClickListener { _, _ ->
                     prepararEdicionPunto(id, nombre, cap, estado)
@@ -115,9 +119,39 @@ class AdminPuntosActivity : AppCompatActivity() {
                     true
                 }
                 map.overlays.add(marker)
+
+                // Botón en el Carrusel Inferior
+                val btnChip = TextView(this).apply {
+                    text = nombre
+                    setTextColor(Color.WHITE)
+                    textSize = 14f
+                    setPadding(40, 20, 40, 20)
+                    background = GradientDrawable().apply {
+                        shape = GradientDrawable.RECTANGLE
+                        cornerRadius = 50f
+                        setColor(Color.parseColor("#1E293B"))
+                    }
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                        setMargins(0, 0, 24, 0)
+                    }
+
+                    setOnClickListener {
+                        map.controller.animateTo(geoPoint)
+                        map.controller.setZoom(18.0)
+                        prepararEdicionPunto(id, nombre, cap, estado)
+                    }
+                }
+                layoutPuntosRapidos.addView(btnChip)
+
             } while (cursor.moveToNext())
         }
         cursor.close()
+
+        // Auto-foco
+        primerPunto?.let {
+            map.controller.setCenter(it)
+            map.controller.setZoom(16.0)
+        }
         map.invalidate()
     }
 
@@ -138,7 +172,6 @@ class AdminPuntosActivity : AppCompatActivity() {
         builder.setNegativeButton("Cancelar", null)
         builder.show()
     }
-
     private fun guardarNuevoPuntoBD(nombre: String, lat: Double, lon: Double) {
         val db = dbHelper.writableDatabase
         val values = ContentValues().apply {
@@ -149,33 +182,30 @@ class AdminPuntosActivity : AppCompatActivity() {
             put(DatabaseHelper.COLUMN_PUNTO_ESTADO, "Disponible")
         }
         db.insert(DatabaseHelper.TABLE_PUNTOS, null, values)
-        Toast.makeText(this, "Punto registrado con éxito", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Punto registrado", Toast.LENGTH_SHORT).show()
         cargarPuntosDesdeBD()
     }
-
     private fun prepararEdicionPunto(id: Int, nombre: String, cap: Int, estado: String) {
         idPuntoSeleccionado = id
         tvSeleccionaPunto.visibility = View.GONE
         layoutEdicionPunto.visibility = View.VISIBLE
 
         tvNombrePuntoEdicion.text = "Punto: $nombre"
-        tvLabelCapacidad.text = "Nivel de Llenado: $cap%"
         sliderCapacidad.value = cap.toFloat()
+        tvLabelCapacidad.text = "Nivel de Llenado: $cap%" // Set inicial al tocar el pin
 
-        // Configurar Spinner de estados
-        val estados = arrayOf("Disponible", "Lleno", "En Recolección")
+        val estados = arrayOf("Disponible", "Lleno", "Mantenimiento")
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, estados)
         spinnerEstado.adapter = adapter
         spinnerEstado.setSelection(estados.indexOf(estado))
     }
 
     private fun configurarControlesEdicion() {
-        // Listener del Slider para actualizar texto en tiempo real
+        // Actualización dinámica del texto al mover el slider
         sliderCapacidad.addOnChangeListener { _, value, _ ->
             tvLabelCapacidad.text = "Nivel de Llenado: ${value.toInt()}%"
         }
 
-        // Botón Guardar
         btnGuardar.setOnClickListener {
             if (idPuntoSeleccionado != -1) {
                 val nuevaCap = sliderCapacidad.value.toInt()
@@ -198,13 +228,6 @@ class AdminPuntosActivity : AppCompatActivity() {
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        map.onResume()
-    }
-
-    override fun onPause() {
-        super.onPause()
-        map.onPause()
-    }
+    override fun onResume() { super.onResume(); map.onResume() }
+    override fun onPause() { super.onPause(); map.onPause() }
 }

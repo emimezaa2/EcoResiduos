@@ -7,15 +7,15 @@
     android:background="@color/bg_light">
 
     <LinearLayout
-        android:id="@+id/headerBot"
+        android:id="@+id/topBarBot"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/white"
-        android:elevation="8dp"
         android:orientation="horizontal"
-        android:padding="16dp"
+        android:padding="20dp"
         android:gravity="center_vertical"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent"
+        android:elevation="4dp">
 
         <TextView
             android:id="@+id/btnBackBot"
@@ -23,25 +23,17 @@
             android:layout_height="wrap_content"
             android:text="←"
             android:textSize="28sp"
-            android:textColor="@color/text_dark"
+            android:textColor="@color/text_sub"
             android:textStyle="bold"
             android:paddingEnd="16dp"
             android:clickable="true"
             android:focusable="true"/>
 
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            app:cardCornerRadius="22dp"
-            app:cardBackgroundColor="@color/green_light"
-            app:strokeWidth="0dp">
-            <ImageView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:padding="8dp"
-                android:src="@drawable/ic_menu_bot"
-                app:tint="@color/green_primary"/>
-        </com.google.android.material.card.MaterialCardView>
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_eco_logo"
+            app:tint="@color/green_primary"/>
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -51,7 +43,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Eco Asistente"
+                android:text="EcoBot"
                 android:textColor="@color/text_dark"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -59,21 +51,19 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="En línea"
-                android:textColor="@color/status_success"
-                android:textSize="12sp"
-                android:textStyle="bold" />
+                android:textColor="@color/green_primary"
+                android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>
 
     <ScrollView
-        android:id="@+id/chatScrollView"
+        android:id="@+id/scrollChat"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:padding="16dp"
         android:clipToPadding="false"
-        android:paddingBottom="80dp"
-        app:layout_constraintTop_toBottomOf="@id/headerBot"
-        app:layout_constraintBottom_toTopOf="@id/inputLayout">
+        app:layout_constraintTop_toBottomOf="@id/topBarBot"
+        app:layout_constraintBottom_toTopOf="@id/bottomBarChat">
 
         <LinearLayout
             android:id="@+id/chatContainer"
@@ -84,55 +74,42 @@
     </ScrollView>
 
     <LinearLayout
-        android:id="@+id/inputLayout"
+        android:id="@+id/bottomBarChat"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/transparent"
-        android:padding="16dp"
-        app:layout_constraintBottom_toBottomOf="parent">
+        android:background="@color/white"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="center_vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:elevation="8dp">
+
+        <EditText
+            android:id="@+id/etMensajeBot"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="50dp"
+            android:background="@drawable/bot_bubble_bg"
+            android:hint="Pregúntale algo a EcoBot..."
+            android:paddingHorizontal="16dp"
+            android:textColor="@color/text_dark"
+            android:textSize="14sp"/>
 
         <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="28dp"
-            app:cardBackgroundColor="@color/white"
-            app:cardElevation="8dp"
-            app:strokeWidth="1dp"
-            app:strokeColor="#E2E8F0">
+            android:id="@+id/btnEnviarBot"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginStart="8dp"
+            app:cardBackgroundColor="@color/green_primary"
+            app:cardCornerRadius="25dp"
+            app:strokeWidth="0dp">
 
-            <LinearLayout
+            <ImageView
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingStart="20dp"
-                android:paddingEnd="6dp"
-                android:paddingTop="6dp"
-                android:paddingBottom="6dp">
-
-                <EditText
-                    android:id="@+id/etMessage"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:background="@android:color/transparent"
-                    android:hint="Pregunta sobre reciclaje..."
-                    android:textSize="16sp"
-                    android:textColorHint="@color/text_sub"
-                    android:textColor="@color/text_dark"
-                    android:minHeight="48dp"
-                    android:maxLines="4"/>
-
-                <com.google.android.material.floatingactionbutton.FloatingActionButton
-                    android:id="@+id/btnSend"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:src="@drawable/ic_send"
-                    app:backgroundTint="@color/green_primary"
-                    app:tint="@color/white"
-                    app:fabSize="mini"
-                    app:elevation="0dp" />
-            </LinearLayout>
+                android:layout_height="match_parent"
+                android:padding="14dp"
+                android:src="@drawable/ic_send"
+                app:tint="@color/white"/>
         </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 

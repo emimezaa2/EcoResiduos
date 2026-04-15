@@ -1,105 +1,166 @@
-package com.meza.ecoresiduos.user
+package com.meza.ecoresiduos.user // Ajusta tu paquete si es necesario
 
+import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.view.View
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.meza.ecoresiduos.R
+import com.meza.ecoresiduos.db.DatabaseHelper
 import org.osmdroid.config.Configuration
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
-import com.meza.ecoresiduos.R
 
 class UserPuntosActivity : AppCompatActivity() {
 
     private lateinit var map: MapView
+    private lateinit var dbHelper: DatabaseHelper
+
+    // Referencias a la UI inferior
+    private lateinit var tvSeleccionaPuntoUser: TextView
+    private lateinit var layoutDatosPuntoUser: LinearLayout
+    private lateinit var tvNombrePuntoUser: TextView
+    private lateinit var tvEstadoPuntoUser: TextView
+    private lateinit var pbCapacidadUser: ProgressBar
+
+    // El Carrusel nuevo
+    private lateinit var layoutPuntosRapidos: LinearLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Regla obligatoria de OpenStreetMap: Identificar nuestra app
         Configuration.getInstance().userAgentValue = packageName
-
         setContentView(R.layout.activity_user_puntos)
 
-        val btnBack = findViewById<TextView>(R.id.btnBackPuntos)
-        val container = findViewById<LinearLayout>(R.id.containerPuntos)
-        map = findViewById(R.id.map)
+        dbHelper = DatabaseHelper(this)
 
-        btnBack.setOnClickListener { onBackPressedDispatcher.onBackPressed() }
+        // Vinculación de Vistas
+        map = findViewById(R.id.mapUser)
+        tvSeleccionaPuntoUser = findViewById(R.id.tvSeleccionaPuntoUser)
+        layoutDatosPuntoUser = findViewById(R.id.layoutDatosPuntoUser)
+        tvNombrePuntoUser = findViewById(R.id.tvNombrePuntoUser)
+        tvEstadoPuntoUser = findViewById(R.id.tvEstadoPuntoUser)
+        pbCapacidadUser = findViewById(R.id.pbCapacidadUser)
+        layoutPuntosRapidos = findViewById(R.id.layoutPuntosRapidos)
+
+        findViewById<TextView>(R.id.btnBackUserPuntos).setOnClickListener {
+            onBackPressedDispatcher.onBackPressed()
+        }
 
         configurarMapa()
-        cargarTarjetas(container)
     }
 
     private fun configurarMapa() {
-        // Activamos el zoom con los dedos
         map.setMultiTouchControls(true)
+        val tolucaCentro = GeoPoint(19.2826, -99.6557) // Respaldo por si no hay puntos
+        map.controller.setZoom(15.0)
+        map.controller.setCenter(tolucaCentro)
 
-        // Coordenadas de Toluca
-        val tolucaCentro = GeoPoint(19.2826, -99.6557)
+        cargarPuntosRealesDesdeBD()
+    }
 
-        // Configuramos el zoom y centramos la cámara
-        val mapController = map.controller
-        mapController.setZoom(15.0)
-        mapController.setCenter(tolucaCentro)
+    private fun cargarPuntosRealesDesdeBD() {
+        map.overlays.removeAll { it is Marker }
+        layoutPuntosRapidos.removeAllViews()
 
-        // 1. Añadimos el Punto del Parque Vicente Guerrero
-        val marker1 = Marker(map)
-        marker1.position = GeoPoint(19.2845, -99.6640)
-        marker1.title = "Contenedor: Parque V. Guerrero"
-        map.overlays.add(marker1)
+        val db = dbHelper.readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM ${DatabaseHelper.TABLE_PUNTOS}", null)
 
-        // 2. Añadimos el Punto de la Alameda
-        val marker2 = Marker(map)
-        marker2.position = GeoPoint(19.2885, -99.6600)
-        marker2.title = "Contenedor: Alameda 2000"
-        map.overlays.add(marker2)
+        var primerPunto: GeoPoint? = null
 
-        // 3. Añadimos el Punto por C.U.
-        val marker3 = Marker(map)
-        marker3.position = GeoPoint(19.2780, -99.6700)
-        marker3.title = "Contenedor: Zona Universitaria"
-        map.overlays.add(marker3)
+        if (cursor.moveToFirst()) {
+            do {
+                val nombre = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PUNTO_NOMBRE))
+                val lat = cursor.getDouble(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PUNTO_LAT))
+                val lon = cursor.getDouble(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PUNTO_LON))
+                val cap = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PUNTO_CAPACIDAD))
+                val estado = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PUNTO_ESTADO))
 
-        // Refrescamos el mapa para que muestre los marcadores
+                val geoPoint = GeoPoint(lat, lon)
+                if (primerPunto == null) primerPunto = geoPoint
+
+                // 1. Crear el PIN en el Mapa
+                val marker = Marker(map)
+                marker.position = geoPoint
+                marker.title = nombre
+
+                if (estado == "Lleno" || cap >= 90) {
+                    marker.icon.setTint(Color.parseColor("#EF4444")) // Rojo
+                } else if (estado == "Mantenimiento") {
+                    marker.icon.setTint(Color.parseColor("#64748B")) // Gris
+                } else {
+                    marker.icon.setTint(Color.parseColor("#10B981")) // Verde
+                }
+
+                marker.setOnMarkerClickListener { _, _ ->
+                    mostrarDetallePunto(nombre, cap, estado)
+                    map.controller.animateTo(marker.position)
+                    true
+                }
+                map.overlays.add(marker)
+
+                // 2. Crear el BOTÓN en el Carrusel Inferior
+                val btnChip = TextView(this).apply {
+                    text = nombre
+                    setTextColor(Color.WHITE)
+                    textSize = 14f
+                    setPadding(40, 20, 40, 20)
+                    background = GradientDrawable().apply {
+                        shape = GradientDrawable.RECTANGLE
+                        cornerRadius = 50f
+                        setColor(Color.parseColor("#10B981")) // Verde Usuario
+                    }
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                        setMargins(0, 0, 24, 0)
+                    }
+
+                    setOnClickListener {
+                        map.controller.animateTo(geoPoint)
+                        map.controller.setZoom(18.0)
+                        mostrarDetallePunto(nombre, cap, estado)
+                    }
+                }
+                layoutPuntosRapidos.addView(btnChip)
+
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+
+        // 3. AUTO-FOCO: Viajar al primer contenedor encontrado
+        primerPunto?.let {
+            map.controller.setCenter(it)
+            map.controller.setZoom(16.0)
+        }
+
         map.invalidate()
     }
 
-    private fun cargarTarjetas(container: LinearLayout) {
-        val puntosRed = listOf(
-            mapOf("nombre" to "Parque Vicente Guerrero", "distancia" to "0.8 km", "estado" to "Operativo"),
-            mapOf("nombre" to "Alameda Central", "distancia" to "1.5 km", "estado" to "Capacidad Alta"),
-            mapOf("nombre" to "Zona Universitaria", "distancia" to "2.2 km", "estado" to "Operativo")
-        )
+    private fun mostrarDetallePunto(nombre: String, capacidad: Int, estado: String) {
+        tvSeleccionaPuntoUser.visibility = View.GONE
+        layoutDatosPuntoUser.visibility = View.VISIBLE
 
-        for (punto in puntosRed) {
-            val cardView = TextView(this)
-            cardView.text = "Ubicación: ${punto["nombre"]}\nDistancia: ${punto["distancia"]}\nEstatus: ${punto["estado"]}"
-            cardView.textSize = 15f
-            cardView.setTextColor(Color.parseColor("#0F172A"))
-            cardView.setPadding(40, 40, 40, 40)
-            cardView.setBackgroundColor(Color.WHITE)
+        tvNombrePuntoUser.text = "Ubicación: $nombre"
+        pbCapacidadUser.progress = capacidad
 
-            val params = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            params.setMargins(0, 0, 0, 24)
-            cardView.layoutParams = params
-
-            container.addView(cardView)
+        if (estado == "Lleno" || capacidad >= 90) {
+            tvEstadoPuntoUser.text = "Capacidad Alta - Evite usar"
+            tvEstadoPuntoUser.setTextColor(Color.parseColor("#EF4444"))
+            pbCapacidadUser.progressTintList = ColorStateList.valueOf(Color.parseColor("#EF4444"))
+        } else if (estado == "Mantenimiento") {
+            tvEstadoPuntoUser.text = "En Mantenimiento"
+            tvEstadoPuntoUser.setTextColor(Color.parseColor("#64748B"))
+            pbCapacidadUser.progressTintList = ColorStateList.valueOf(Color.parseColor("#64748B"))
+        } else {
+            tvEstadoPuntoUser.text = "Operativo ($capacidad% lleno)"
+            tvEstadoPuntoUser.setTextColor(Color.parseColor("#10B981"))
+            pbCapacidadUser.progressTintList = ColorStateList.valueOf(Color.parseColor("#10B981"))
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        map.onResume() // Requerido por osmdroid
-    }
-
-    override fun onPause() {
-        super.onPause()
-        map.onPause() // Requerido por osmdroid
-    }
+    override fun onResume() { super.onResume(); map.onResume() }
+    override fun onPause() { super.onPause(); map.onPause() }
 }

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item android:id="@+id/nav_admin_home" android:icon="@drawable/ic_profile" android:title="Centro de Control" />
+        <item android:id="@+id/nav_admin_validar" android:icon="@drawable/ic_menu_reporte" android:title="Validar Tickets" />
+        <item android:id="@+id/nav_admin_comunidad" android:icon="@drawable/ic_profile" android:title="Comunidad" />
+        <item android:id="@+id/nav_admin_puntos" android:icon="@drawable/ic_menu_puntos" android:title="Gestión de Red GPS" />
+        <item android:id="@+id/nav_admin_bitacora" android:icon="@drawable/ic_menu_impacto" android:title="Auditoría / Bitácora" />
+    </group>
+
+    <item android:title="Seguridad">
+        <menu>
+            <item android:id="@+id/nav_admin_logout" android:icon="@drawable/ic_logout" android:title="Cerrar Sesión" />
+        </menu>
+    </item>
+</menu>

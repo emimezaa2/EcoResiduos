@@ -172,6 +172,8 @@
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:fitsSystemWindows="true"
+        app:menu="@menu/nav_menu_admin"
+        app:headerLayout="@layout/nav_header_admin"
         app:itemIconTint="@color/admin_dark"
         app:itemTextColor="@color/text_dark"/>
 

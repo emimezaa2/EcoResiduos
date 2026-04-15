@@ -3,80 +3,88 @@ package com.meza.ecoresiduos.user
 import android.graphics.Color
 import android.os.Bundle
 import android.view.Gravity
-import android.widget.EditText
-import android.widget.LinearLayout
-import android.widget.ScrollView
-import android.widget.TextView
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.card.MaterialCardView
-import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.meza.ecoresiduos.R
+import com.meza.ecoresiduos.bot.EcoBotEngine
 
 class UserEcobotActivity : AppCompatActivity() {
 
+    private lateinit var motorBot: EcoBotEngine
     private lateinit var chatContainer: LinearLayout
-    private lateinit var chatScrollView: ScrollView
+    private lateinit var scrollChat: ScrollView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Conectado a tu archivo XML original
         setContentView(R.layout.activity_user_ecobot)
 
-        val btnBack = findViewById<TextView>(R.id.btnBackBot)
-        val etMessage = findViewById<EditText>(R.id.etMessage)
-        val btnSend = findViewById<FloatingActionButton>(R.id.btnSend)
+        motorBot = EcoBotEngine(this)
 
         chatContainer = findViewById(R.id.chatContainer)
-        chatScrollView = findViewById(R.id.chatScrollView)
+        scrollChat = findViewById(R.id.scrollChat)
+        val etMensajeBot = findViewById<EditText>(R.id.etMensajeBot)
+        val btnEnviarBot = findViewById<MaterialCardView>(R.id.btnEnviarBot)
+        val btnBackBot = findViewById<TextView>(R.id.btnBackBot)
 
-        btnBack.setOnClickListener { onBackPressedDispatcher.onBackPressed() }
+        btnBackBot.setOnClickListener { onBackPressedDispatcher.onBackPressed() }
 
-        // Mensaje inicial del Asistente al abrir la pantalla
-        addMessageToChat("Hola. Soy tu Eco Asistente Virtual. ¿Qué material deseas clasificar hoy?", false)
+        // Mensaje inicial del bot
+        agregarBurbujaChat("¡Hola! Soy EcoBot. ¿En qué te puedo ayudar hoy con tus residuos?", esUsuario = false)
 
-        btnSend.setOnClickListener {
-            val userText = etMessage.text.toString().trim()
-            if (userText.isNotEmpty()) {
-                // 1. Dibujar burbuja verde (Usuario)
-                addMessageToChat(userText, true)
-                etMessage.text.clear()
+        btnEnviarBot.setOnClickListener {
+            val mensajeUsuario = etMensajeBot.text.toString().trim()
 
-                // 2. Simular respuesta del bot con un pequeño retraso
-                chatContainer.postDelayed({
-                    addMessageToChat("De acuerdo. La mayoría de los materiales tipo '$userText' están clasificados como residuos estándar. Te sugiero depositarlos en el contenedor correspondiente de tu zona.", false)
-                }, 800) // 800 milisegundos de espera
+            if (mensajeUsuario.isNotEmpty()) {
+                // Usuario pregunta
+                agregarBurbujaChat(mensajeUsuario, esUsuario = true)
+                etMensajeBot.text.clear()
+
+                // Bot piensa y responde
+                val respuestaDelBot = motorBot.procesarMensaje(mensajeUsuario)
+                scrollChat.postDelayed({
+                    agregarBurbujaChat(respuestaDelBot, esUsuario = false)
+                }, 500)
             }
         }
     }
 
-    // Esta función genera las burbujas Premium de forma dinámica
-    private fun addMessageToChat(message: String, isUser: Boolean) {
-        val rowLayout = LinearLayout(this)
-        rowLayout.orientation = LinearLayout.HORIZONTAL
-        rowLayout.gravity = if (isUser) Gravity.END else Gravity.START
-        val rowParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-        rowParams.setMargins(0, 0, 0, 24)
-        rowLayout.layoutParams = rowParams
+    private fun agregarBurbujaChat(mensaje: String, esUsuario: Boolean) {
+        val fila = LinearLayout(this)
+        fila.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        fila.orientation = LinearLayout.HORIZONTAL
+        fila.gravity = if (esUsuario) Gravity.END else Gravity.START
+        fila.setPadding(0, 8, 0, 8)
 
-        val cardView = MaterialCardView(this)
-        // Verde primario para el usuario, blanco para el bot
-        cardView.setCardBackgroundColor(if (isUser) Color.parseColor("#15803D") else Color.WHITE)
-        cardView.radius = 48f
-        cardView.cardElevation = if (isUser) 0f else 6f
-        cardView.strokeWidth = 0
+        val burbuja = MaterialCardView(this)
+        burbuja.radius = 32f
+        burbuja.cardElevation = 2f
+        burbuja.strokeWidth = 0
 
-        val textView = TextView(this)
-        textView.text = message
-        textView.setTextColor(if (isUser) Color.WHITE else Color.parseColor("#0F172A"))
-        textView.textSize = 15f
-        textView.setPadding(48, 32, 48, 32)
-        textView.maxWidth = (resources.displayMetrics.widthPixels * 0.75).toInt()
+        if (esUsuario) {
+            burbuja.setCardBackgroundColor(Color.parseColor("#10B981"))
+        } else {
+            burbuja.setCardBackgroundColor(Color.parseColor("#F1F5F9"))
+        }
 
-        cardView.addView(textView)
-        rowLayout.addView(cardView)
-        chatContainer.addView(rowLayout)
+        val tvMensaje = TextView(this)
+        tvMensaje.text = mensaje
+        tvMensaje.textSize = 15f
+        tvMensaje.setPadding(36, 24, 36, 24)
 
-        chatScrollView.post {
-            chatScrollView.fullScroll(ScrollView.FOCUS_DOWN)
+        if (esUsuario) {
+            tvMensaje.setTextColor(Color.WHITE)
+        } else {
+            tvMensaje.setTextColor(Color.parseColor("#0F172A"))
+        }
+
+        burbuja.addView(tvMensaje)
+        fila.addView(burbuja)
+        chatContainer.addView(fila)
+
+        scrollChat.post {
+            scrollChat.fullScroll(ScrollView.FOCUS_DOWN)
         }
     }
 }

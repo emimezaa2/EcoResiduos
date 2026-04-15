@@ -7,18 +7,18 @@
     android:background="@color/bg_light">
 
     <LinearLayout
-        android:id="@+id/headerPuntos"
+        android:id="@+id/topBarUserPuntos"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/white"
-        android:elevation="2dp"
         android:orientation="horizontal"
-        android:padding="16dp"
+        android:padding="24dp"
         android:gravity="center_vertical"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent"
+        android:elevation="4dp">
 
         <TextView
-            android:id="@+id/btnBackPuntos"
+            android:id="@+id/btnBackUserPuntos"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="← Volver"
@@ -33,30 +33,99 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Red de Recolección"
-            android:textColor="@color/text_dark"
+            android:textColor="@color/green_primary"
             android:textSize="20sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:layout_marginStart="8dp"/>
     </LinearLayout>
 
     <org.osmdroid.views.MapView
-        android:id="@+id/map"
-        android:layout_width="match_parent"
-        android:layout_height="300dp"
-        app:layout_constraintTop_toBottomOf="@id/headerPuntos" />
-
-    <ScrollView
+        android:id="@+id/mapUser"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:padding="20dp"
-        app:layout_constraintTop_toBottomOf="@id/map"
+        app:layout_constraintTop_toBottomOf="@id/topBarUserPuntos"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+    <HorizontalScrollView
+        android:id="@+id/scrollPuntosRapidos"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:clipToPadding="false"
+        android:paddingHorizontal="16dp"
+        android:scrollbars="none"
+        app:layout_constraintBottom_toTopOf="@+id/cardInfoPuntoUser">
+
+        <LinearLayout
+            android:id="@+id/layoutPuntosRapidos"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"/>
+    </HorizontalScrollView>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardInfoPuntoUser"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardBackgroundColor="@color/white"
+        app:cardElevation="24dp"
+        app:cardCornerRadius="24dp"
+        android:layout_marginBottom="-20dp"
         app:layout_constraintBottom_toBottomOf="parent">
 
         <LinearLayout
-            android:id="@+id/containerPuntos"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:paddingBottom="44dp">
+
+            <TextView
+                android:id="@+id/tvSeleccionaPuntoUser"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Toca un punto o usa el buscador superior para ver detalles."
+                android:textColor="@color/text_sub"
+                android:textAlignment="center"
+                android:textSize="14sp"
+                android:paddingVertical="30dp"
+                android:visibility="visible"/>
+
+            <LinearLayout
+                android:id="@+id/layoutDatosPuntoUser"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/tvNombrePuntoUser"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Ubicación: -"
+                    android:textColor="@color/text_dark"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvEstadoPuntoUser"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Cargando estatus..."
+                    android:layout_marginTop="8dp"
+                    android:textColor="@color/green_primary"
+                    android:textStyle="bold" />
+
+                <ProgressBar
+                    android:id="@+id/pbCapacidadUser"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="12dp"
+                    android:layout_marginTop="16dp"
+                    android:progressTint="@color/green_primary" />
+            </LinearLayout>
         </LinearLayout>
-    </ScrollView>
+    </com.google.android.material.card.MaterialCardView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
