@@ -27,13 +27,11 @@ class AdminDashActivity : AppCompatActivity() {
         dbHelper = DatabaseHelper(this)
         drawerLayoutAdmin = findViewById(R.id.drawerLayoutAdmin)
 
-        // 1. Botón para abrir el menú (Hamburguesa)
         val btnOpenMenuAdmin = findViewById<ImageView>(R.id.btnOpenMenuAdmin)
         btnOpenMenuAdmin.setOnClickListener {
             drawerLayoutAdmin.openDrawer(GravityCompat.START)
         }
 
-        // 2. Lógica del Menú Lateral
         val navViewAdmin = findViewById<NavigationView>(R.id.navViewAdmin)
         navViewAdmin.setNavigationItemSelectedListener { menuItem ->
             when (menuItem.itemId) {

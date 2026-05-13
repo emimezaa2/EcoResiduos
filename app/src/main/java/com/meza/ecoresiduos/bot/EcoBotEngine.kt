@@ -14,7 +14,7 @@ class EcoBotEngine(private val context: Context) {
         val userId = prefs.getInt("user_id", -1)
         val userName = prefs.getString("user_name", "Usuario")
 
-        // 1. SALUDOS
+
         if (msj == "hola" || msj == "hey" || msj == "buenos dias" || msj == "buenas") {
             return "¡Hola, $userName! Soy EcoBot 🤖. Pregúntame sobre tus 'kilos', 'tickets pendientes', o pregúntame '¿Cómo está el punto de tu eleccion?' para ver contenedores."
         }
@@ -22,7 +22,7 @@ class EcoBotEngine(private val context: Context) {
             return "Por favor, sé un poco más específico. ¿Necesitas ayuda con puntos de recolección o tus estadísticas?"
         }
 
-        // 2. ESTADO EN TIEMPO REAL DE UN PUNTO ESPECÍFICO
+
         if (msj.contains("como esta el punto") || msj.contains("estado de") || msj.contains("capacidad de")) {
             val puntoABuscar = msj.replace("como esta el punto", "")
                 .replace("estado de", "")

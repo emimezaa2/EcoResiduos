@@ -12,42 +12,34 @@ import com.meza.ecoresiduos.db.DatabaseHelper
 
 class RegisterActivity : AppCompatActivity() {
 
-    // Instancia de nuestra base de datos
     private lateinit var dbHelper: DatabaseHelper
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_register)
 
-        // Inicializar Base de Datos
         dbHelper = DatabaseHelper(this)
 
-        // 1. Vincular los NUEVOS IDs técnicos del diseño Premium
         val etName = findViewById<TextInputEditText>(R.id.etRegisterName)
         val etEmail = findViewById<TextInputEditText>(R.id.etRegisterEmail)
         val etPassword = findViewById<TextInputEditText>(R.id.etRegisterPassword)
         val btnFinalize = findViewById<Button>(R.id.btnFinalizeRegister)
         val btnBack = findViewById<TextView>(R.id.btnBackRegister)
 
-        // 2. Acción de regresar al Login
         btnBack.setOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }
 
-        // 3. Acción principal: Registrar Usuario
         btnFinalize.setOnClickListener {
-            // Extraer textos y limpiar espacios en blanco al inicio y final
             val name = etName.text.toString().trim()
             val email = etEmail.text.toString().trim()
             val password = etPassword.text.toString().trim()
 
-            // Validación de seguridad básica
             if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
                 Toast.makeText(this, "Por favor, completa todos los campos de registro.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener // Detenemos la ejecución si falta algo
             }
 
-            // Si todo está correcto, mandamos a la base de datos
             registrarUsuarioEnBaseDeDatos(name, email, password)
         }
     }

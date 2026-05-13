@@ -24,21 +24,17 @@ class LoginActivity : AppCompatActivity() {
 
         dbHelper = DatabaseHelper(this)
 
-        // ¡EL SALVAVIDAS! Verificamos e insertamos el admin forzosamente si no existe
         crearAdminSiNoExiste()
 
-        // Referencias a los componentes
         val etEmail = findViewById<TextInputEditText>(R.id.etEmail)
         val etPassword = findViewById<TextInputEditText>(R.id.etPassword)
         val btnLogin = findViewById<Button>(R.id.btnUserLogin)
         val tvRegister = findViewById<TextView>(R.id.tvGoToRegister)
 
-        // Ir a Registro
         tvRegister.setOnClickListener {
             startActivity(Intent(this, RegisterActivity::class.java))
         }
 
-        // Lógica de Inicio de Sesión
         btnLogin.setOnClickListener {
             val email = etEmail.text.toString().trim()
             val password = etPassword.text.toString().trim()
@@ -52,15 +48,14 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    // --- FUNCIÓN DE RESCATE ---
+
     private fun crearAdminSiNoExiste() {
         val db = dbHelper.writableDatabase
 
-        // Buscamos si ya hay alguien con el rol de 'admin'
+
         val cursor = db.rawQuery("SELECT * FROM ${DatabaseHelper.TABLE_USERS} WHERE ${DatabaseHelper.COLUMN_USER_ROLE} = 'admin'", null)
 
         if (!cursor.moveToFirst()) {
-            // Si el cursor está vacío, significa que NO hay administrador. Lo creamos:
             val adminValues = ContentValues().apply {
                 put(DatabaseHelper.COLUMN_USER_NAME, "Administrador Maestro")
                 put(DatabaseHelper.COLUMN_USER_EMAIL, "ad")
@@ -77,7 +72,7 @@ class LoginActivity : AppCompatActivity() {
         }
         cursor.close()
     }
-    // --------------------------
+
 
     private fun validarAcceso(email: String, password: String) {
         val db = dbHelper.readableDatabase

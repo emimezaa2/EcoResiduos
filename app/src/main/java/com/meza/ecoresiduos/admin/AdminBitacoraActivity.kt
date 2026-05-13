@@ -31,8 +31,7 @@ class AdminBitacoraActivity : AppCompatActivity() {
     private fun cargarHistorialCompleto(container: LinearLayout) {
         val db = dbHelper.readableDatabase
 
-        // Hacemos un JOIN para obtener todos los reportes y el nombre de quien lo hizo
-        // Ordenamos por ID de forma descendente (DESC) para ver los más nuevos primero
+
         val query = """
             SELECT r.${DatabaseHelper.COLUMN_REPORT_ID}, u.${DatabaseHelper.COLUMN_USER_NAME}, 
                    r.${DatabaseHelper.COLUMN_REPORT_PESO}, r.${DatabaseHelper.COLUMN_REPORT_TIPO}, 

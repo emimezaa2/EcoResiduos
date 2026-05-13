@@ -21,7 +21,6 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
-// 1. CLASE AUXILIAR PARA EL SPINNER (Para mostrar el nombre pero guardar el ID)
 data class PuntoMenu(val id: Int, val nombre: String) {
     override fun toString(): String = nombre
 }
@@ -63,12 +62,10 @@ class UserReporteActivity : AppCompatActivity() {
 
         btnBack.setOnClickListener { onBackPressedDispatcher.onBackPressed() }
 
-        // Actualizar número del Slider
         sliderPeso.addOnChangeListener { _, value, _ ->
             tvDisplayPeso.text = "${value} kg"
         }
 
-        // Permiso y Cámara
         cardFoto.setOnClickListener {
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), 100)

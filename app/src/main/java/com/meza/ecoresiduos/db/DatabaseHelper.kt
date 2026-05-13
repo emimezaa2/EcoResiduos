@@ -1,5 +1,4 @@
-package com.meza.ecoresiduos.db // Ajusta a tu paquete
-
+package com.meza.ecoresiduos.db
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
@@ -8,9 +7,9 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
     companion object {
         private const val DATABASE_NAME = "EcoResiduos.db"
-        private const val DATABASE_VERSION = 3 // Incrementamos versión por los cambios
+        private const val DATABASE_VERSION = 3
 
-        // --- TABLA USUARIOS ---
+
         const val TABLE_USERS = "usuarios"
         const val COLUMN_USER_ID = "id"
         const val COLUMN_USER_NAME = "nombre"
@@ -19,7 +18,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         const val COLUMN_USER_ROLE = "role" // 'admin' o 'user'
         const val COLUMN_USER_KILOS = "kilos_totales"
 
-        // --- TABLA PUNTOS DE RECOLECCIÓN (Nueva) ---
+        // tabla puntos de recoleccion
         const val TABLE_PUNTOS = "puntos_recoleccion"
         const val COLUMN_PUNTO_ID = "id_punto"
         const val COLUMN_PUNTO_NOMBRE = "nombre_punto"

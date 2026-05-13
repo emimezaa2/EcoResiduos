@@ -32,7 +32,6 @@ class AdminComunidadActivity : AppCompatActivity() {
     private fun cargarDirectorio(container: LinearLayout) {
         val db = dbHelper.readableDatabase
 
-        // Buscamos a todos los usuarios que NO sean administradores, ordenados por los que tienen más kilos
         val query = "SELECT ${DatabaseHelper.COLUMN_USER_NAME}, ${DatabaseHelper.COLUMN_USER_EMAIL}, ${DatabaseHelper.COLUMN_USER_KILOS} FROM ${DatabaseHelper.TABLE_USERS} WHERE ${DatabaseHelper.COLUMN_USER_ROLE} != 'admin' ORDER BY ${DatabaseHelper.COLUMN_USER_KILOS} DESC"
 
         val cursor = db.rawQuery(query, null)
@@ -43,7 +42,7 @@ class AdminComunidadActivity : AppCompatActivity() {
                 val email = cursor.getString(1)
                 val kilos = cursor.getDouble(2)
 
-                // 1. Tarjeta Principal Flotante
+
                 val cardView = MaterialCardView(this)
                 cardView.setCardBackgroundColor(Color.WHITE)
                 cardView.radius = 24f
@@ -54,7 +53,6 @@ class AdminComunidadActivity : AppCompatActivity() {
                 params.setMargins(0, 0, 0, 24) // Separación entre tarjetas
                 cardView.layoutParams = params
 
-                // 2. Layout Horizontal Interno
                 val rowLayout = LinearLayout(this)
                 rowLayout.orientation = LinearLayout.HORIZONTAL
                 rowLayout.gravity = Gravity.CENTER_VERTICAL
@@ -65,12 +63,12 @@ class AdminComunidadActivity : AppCompatActivity() {
                 avatarCard.setCardBackgroundColor(Color.parseColor("#F3E8FF"))
                 avatarCard.radius = 50f
                 avatarCard.strokeWidth = 0
-                val avatarParams = LinearLayout.LayoutParams(100, 100) // Tamaño fijo para el círculo
+                val avatarParams = LinearLayout.LayoutParams(100, 100)
                 avatarCard.layoutParams = avatarParams
 
                 val avatarIcon = ImageView(this)
                 avatarIcon.setImageResource(R.drawable.ic_profile)
-                avatarIcon.setColorFilter(Color.parseColor("#9333EA")) // Icono morado oscuro
+                avatarIcon.setColorFilter(Color.parseColor("#9333EA"))
                 avatarIcon.setPadding(20, 20, 20, 20)
                 avatarCard.addView(avatarIcon)
 
