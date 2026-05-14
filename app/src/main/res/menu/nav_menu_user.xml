@@ -6,6 +6,8 @@
         <item android:id="@+id/nav_impacto" android:icon="@drawable/ic_menu_impacto" android:title="Mi Impacto" />
         <item android:id="@+id/nav_bot" android:icon="@drawable/ic_menu_bot" android:title="Asistente Virtual" />
         <item android:id="@+id/nav_puntos" android:icon="@drawable/ic_menu_puntos" android:title="Mapa de Red" />
+        <!-- NUEVO: BOTÓN PREMIUM -->
+        <item android:id="@+id/nav_premium" android:icon="@android:drawable/btn_star" android:title="Hazte Premium " />
     </group>
 
     <item android:title="Opciones">

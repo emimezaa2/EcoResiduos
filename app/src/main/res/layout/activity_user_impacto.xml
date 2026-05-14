@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_light">
+    android:background="#F8FAFC">
 
     <LinearLayout
         android:id="@+id/headerImpacto"
@@ -23,7 +23,7 @@
             android:layout_height="wrap_content"
             android:text="← Volver"
             android:textSize="16sp"
-            android:textColor="@color/text_sub"
+            android:textColor="#64748B"
             android:textStyle="bold"
             android:paddingEnd="16dp"
             android:clickable="true"
@@ -33,7 +33,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Mi Impacto Ambiental"
-            android:textColor="@color/text_dark"
+            android:textColor="#0F172A"
             android:textSize="20sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -66,7 +66,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0.0 kg"
-                    android:textColor="@color/green_primary"
+                    android:textColor="#10B981"
                     android:textSize="28sp"
                     android:textStyle="bold"/>
                 <TextView
@@ -76,7 +76,7 @@
                     android:textSize="12sp"
                     android:textStyle="bold"
                     android:layout_marginTop="4dp"
-                    android:textColor="@color/text_sub"/>
+                    android:textColor="#64748B"/>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -100,7 +100,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="0"
-                    android:textColor="@color/green_primary"
+                    android:textColor="#10B981"
                     android:textSize="28sp"
                     android:textStyle="bold"/>
                 <TextView
@@ -110,7 +110,7 @@
                     android:textSize="12sp"
                     android:textStyle="bold"
                     android:layout_marginTop="4dp"
-                    android:textColor="@color/text_sub"/>
+                    android:textColor="#64748B"/>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
@@ -122,7 +122,7 @@
         android:layout_marginStart="24dp"
         android:layout_marginTop="8dp"
         android:text="Procesos en Revisión"
-        android:textColor="@color/text_dark"
+        android:textColor="#0F172A"
         android:textSize="18sp"
         android:textStyle="bold"
         app:layout_constraintTop_toBottomOf="@id/statsLayout"
@@ -141,6 +141,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
+            <!-- Aquí se insertarán las tarjetas dinámicamente -->
         </LinearLayout>
     </ScrollView>
 

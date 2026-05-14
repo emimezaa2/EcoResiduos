@@ -75,8 +75,41 @@ class UserReporteActivity : AppCompatActivity() {
         }
 
         // Cargar los contenedores que el Admin creó en el mapa
+        // Cargar los contenedores que el Admin creó en el mapa
         cargarPuntosDisponibles()
 
+        // =========================================================
+        // NUEVO: ATRAPAR EL CONTENEDOR ESCANEADO DESDE EL QR
+        // =========================================================
+        val contenedorQueVieneDelQR = intent.getStringExtra("CONTENEDOR_SELECCIONADO")
+
+        // =========================================================
+        // NUEVO: ATRAPAR LA CLASIFICACIÓN DE LA INTELIGENCIA ARTIFICIAL
+        // =========================================================
+        val tipoDesdeIA = intent.getStringExtra("TIPO_DETECTADO_IA")
+        if (tipoDesdeIA == "Orgánico") {
+            toggleTipo.check(R.id.btnOrganico) // Selecciona Orgánico automáticamente
+            Toast.makeText(this, "️ IA: Orgánico detectado", Toast.LENGTH_SHORT).show()
+        } else if (tipoDesdeIA == "Inorgánico") {
+            // Revisa si tu botón en el XML se llama btnSeco o btnInorganico y ajusta este ID:
+            // toggleTipo.check(R.id.btnSeco)
+            Toast.makeText(this, "️ IA: Inorgánico detectado", Toast.LENGTH_SHORT).show()
+        }
+        // =========================================================
+        if (contenedorQueVieneDelQR != null) {
+            // Recorremos todos los elementos del Spinner para buscar el que coincida
+            for (i in 0 until spinnerPuntos.adapter.count) {
+                val puntoEnLista = spinnerPuntos.adapter.getItem(i) as PuntoMenu
+
+                // Si el nombre en la lista es igual al que escaneamos...
+                if (puntoEnLista.nombre == contenedorQueVieneDelQR) {
+                    spinnerPuntos.setSelection(i) // Lo seleccionamos automáticamente
+                    Toast.makeText(this, "Contenedor verificado por QR", Toast.LENGTH_SHORT).show()
+                    break // Detenemos la búsqueda
+                }
+            }
+        }
+        // =========================================================
         btnFinalizar.setOnClickListener {
             if (fotoBitmap == null) {
                 Toast.makeText(this, "Por favor toma una foto de la evidencia.", Toast.LENGTH_SHORT).show()

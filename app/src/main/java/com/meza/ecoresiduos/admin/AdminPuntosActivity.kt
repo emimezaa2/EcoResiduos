@@ -1,4 +1,4 @@
-package com.meza.ecoresiduos.admin
+package com.meza.ecoresiduos.admin // Recuerda cambiar esto por tu paquete real
 
 import android.content.ContentValues
 import android.graphics.Color
@@ -9,6 +9,8 @@ import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.slider.Slider
+import com.google.zxing.BarcodeFormat
+import com.journeyapps.barcodescanner.BarcodeEncoder
 import com.meza.ecoresiduos.R
 import com.meza.ecoresiduos.db.DatabaseHelper
 import org.osmdroid.config.Configuration
@@ -32,6 +34,7 @@ class AdminPuntosActivity : AppCompatActivity() {
     private lateinit var sliderCapacidad: Slider
     private lateinit var tvLabelCapacidad: TextView
     private lateinit var btnGuardar: Button
+    private lateinit var btnGenerarQR: Button // Botón nuevo para QR
 
     // Carrusel de Navegación
     private lateinit var layoutPuntosRapidos: LinearLayout
@@ -52,6 +55,7 @@ class AdminPuntosActivity : AppCompatActivity() {
         sliderCapacidad = findViewById(R.id.sliderCapacidad)
         tvLabelCapacidad = findViewById(R.id.tvLabelCapacidad)
         btnGuardar = findViewById(R.id.btnGuardarPunto)
+        btnGenerarQR = findViewById(R.id.btnGenerarQR) // Vinculación del QR
         layoutPuntosRapidos = findViewById(R.id.layoutPuntosRapidos)
 
         findViewById<TextView>(R.id.btnBackAdminPuntos).setOnClickListener {
@@ -172,6 +176,7 @@ class AdminPuntosActivity : AppCompatActivity() {
         builder.setNegativeButton("Cancelar", null)
         builder.show()
     }
+
     private fun guardarNuevoPuntoBD(nombre: String, lat: Double, lon: Double) {
         val db = dbHelper.writableDatabase
         val values = ContentValues().apply {
@@ -185,6 +190,7 @@ class AdminPuntosActivity : AppCompatActivity() {
         Toast.makeText(this, "Punto registrado", Toast.LENGTH_SHORT).show()
         cargarPuntosDesdeBD()
     }
+
     private fun prepararEdicionPunto(id: Int, nombre: String, cap: Int, estado: String) {
         idPuntoSeleccionado = id
         tvSeleccionaPunto.visibility = View.GONE
@@ -225,6 +231,37 @@ class AdminPuntosActivity : AppCompatActivity() {
                 tvSeleccionaPunto.visibility = View.VISIBLE
                 cargarPuntosDesdeBD()
             }
+        }
+
+        // Evento para generar el QR del contenedor actual
+        btnGenerarQR.setOnClickListener {
+            val nombreActual = tvNombrePuntoEdicion.text.toString().replace("Punto: ", "")
+            mostrarQRGenerado(nombreActual)
+        }
+    }
+
+    private fun mostrarQRGenerado(nombrePunto: String) {
+        try {
+            // El texto que guardaremos en el QR. (En el futuro será el ID de Firebase)
+            val datosQR = "ECO-PUNTO:$nombrePunto"
+
+            val barcodeEncoder = BarcodeEncoder()
+            // Genera la imagen del QR de 400x400 píxeles
+            val bitmap = barcodeEncoder.encodeBitmap(datosQR, BarcodeFormat.QR_CODE, 400, 400)
+
+            val imageView = ImageView(this)
+            imageView.setImageBitmap(bitmap)
+            imageView.setPadding(32, 32, 32, 32)
+
+            AlertDialog.Builder(this)
+                .setTitle("QR Listo para Imprimir")
+                .setMessage("Etiqueta para: $nombrePunto")
+                .setView(imageView)
+                .setPositiveButton("Cerrar", null)
+                .show()
+
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error al generar el QR", Toast.LENGTH_SHORT).show()
         }
     }
 

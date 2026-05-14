@@ -33,6 +33,7 @@ class UserDashActivity : AppCompatActivity() {
         val tvUserNameDash = findViewById<TextView>(R.id.tvUserNameDash)
         val tvUserTotalKilos = findViewById<TextView>(R.id.tvUserTotalKilos)
         val cardReporte = findViewById<MaterialCardView>(R.id.cardReporte)
+        val cardIA = findViewById<MaterialCardView>(R.id.cardIA) // <--- NUEVA REFERENCIA IA
         val cardImpacto = findViewById<MaterialCardView>(R.id.cardImpacto)
         val cardEcoBot = findViewById<MaterialCardView>(R.id.cardEcoBot)
         val cardPuntos = findViewById<MaterialCardView>(R.id.cardPuntos)
@@ -52,6 +53,7 @@ class UserDashActivity : AppCompatActivity() {
                 R.id.nav_impacto -> startActivity(Intent(this, UserImpactoActivity::class.java))
                 R.id.nav_bot -> startActivity(Intent(this, UserEcobotActivity::class.java))
                 R.id.nav_puntos -> startActivity(Intent(this, UserPuntosActivity::class.java))
+                R.id.nav_premium -> startActivity(Intent(this, SuscripcionActivity::class.java)) // <--- NUEVA NAVEGACIÓN PREMIUM
                 R.id.nav_logout -> cerrarSesion()
             }
             drawerLayout.closeDrawer(GravityCompat.START)
@@ -60,6 +62,7 @@ class UserDashActivity : AppCompatActivity() {
 
         // 3. Mantener los clics de las tarjetas centrales (para atajos rápidos)
         cardReporte.setOnClickListener { startActivity(Intent(this, UserReporteActivity::class.java)) }
+        cardIA.setOnClickListener { startActivity(Intent(this, AnalisisIAActivity::class.java)) } // <--- CLIC IA
         cardImpacto.setOnClickListener { startActivity(Intent(this, UserImpactoActivity::class.java)) }
         cardEcoBot.setOnClickListener { startActivity(Intent(this, UserEcobotActivity::class.java)) }
         cardPuntos.setOnClickListener { startActivity(Intent(this, UserPuntosActivity::class.java)) }

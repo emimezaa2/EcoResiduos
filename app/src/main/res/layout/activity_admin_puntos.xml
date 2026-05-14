@@ -153,6 +153,16 @@
                     android:text="Actualizar Infraestructura"
                     android:backgroundTint="@color/admin_dark"
                     app:cornerRadius="12dp"/>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnGenerarQR"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="55dp"
+                    android:layout_marginTop="8dp"
+                    android:text="Generar Código QR"
+                    android:textColor="@color/admin_dark"
+                    app:strokeColor="@color/admin_dark"
+                    app:cornerRadius="12dp"/>
             </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>

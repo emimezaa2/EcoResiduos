@@ -1,132 +1,164 @@
 package com.meza.ecoresiduos.user
 
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Gravity
+import android.view.View
+import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.card.MaterialCardView
 import com.meza.ecoresiduos.R
 import com.meza.ecoresiduos.db.DatabaseHelper
+import java.io.File
 
 class UserImpactoActivity : AppCompatActivity() {
 
     private lateinit var dbHelper: DatabaseHelper
+    private lateinit var containerLotes: LinearLayout
+    private lateinit var tvTotalKilos: TextView
+    private lateinit var tvTotalEntregas: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_user_impacto)
 
         dbHelper = DatabaseHelper(this)
+        containerLotes = findViewById(R.id.containerLotes)
+        tvTotalKilos = findViewById(R.id.tvTotalKilos)
+        tvTotalEntregas = findViewById(R.id.tvTotalEntregas)
 
-        val btnBack = findViewById<TextView>(R.id.btnBackImpacto)
-        val tvTotalKilos = findViewById<TextView>(R.id.tvTotalKilos)
-        val tvTotalEntregas = findViewById<TextView>(R.id.tvTotalEntregas)
-        val containerLotes = findViewById<LinearLayout>(R.id.containerLotes)
-
-        btnBack.setOnClickListener {
+        findViewById<TextView>(R.id.btnBackImpacto).setOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }
 
-        cargarDatosDeImpacto(tvTotalKilos, tvTotalEntregas, containerLotes)
+        cargarDatos()
     }
 
-    private fun cargarDatosDeImpacto(tvKilos: TextView, tvEntregas: TextView, container: LinearLayout) {
+    private fun cargarDatos() {
         val prefs = getSharedPreferences("SesionEco", Context.MODE_PRIVATE)
         val userId = prefs.getInt("user_id", -1)
-
         if (userId == -1) return
 
         val db = dbHelper.readableDatabase
 
-        // 1. Obtener kilos aprobados
-        val cursorKilos = db.rawQuery("SELECT ${DatabaseHelper.COLUMN_USER_KILOS} FROM ${DatabaseHelper.TABLE_USERS} WHERE ${DatabaseHelper.COLUMN_USER_ID} = ?", arrayOf(userId.toString()))
-        if (cursorKilos.moveToFirst()) {
-            tvKilos.text = "${cursorKilos.getDouble(0)} kg"
+        // 1. Estadísticas Globales
+        val cursorStats = db.rawQuery(
+            "SELECT SUM(${DatabaseHelper.COLUMN_REPORT_PESO}), COUNT(*) FROM ${DatabaseHelper.TABLE_REPORTS} WHERE ${DatabaseHelper.COLUMN_REPORT_USER_ID} = ?",
+            arrayOf(userId.toString())
+        )
+
+        if (cursorStats.moveToFirst()) {
+            tvTotalKilos.text = String.format("%.1f kg", cursorStats.getDouble(0))
+            tvTotalEntregas.text = cursorStats.getInt(1).toString()
         }
-        cursorKilos.close()
+        cursorStats.close()
 
-        // 2. Contar entregas aprobadas
-        val cursorEntregas = db.rawQuery("SELECT COUNT(*) FROM ${DatabaseHelper.TABLE_REPORTS} WHERE ${DatabaseHelper.COLUMN_REPORT_USER_ID} = ? AND ${DatabaseHelper.COLUMN_REPORT_STATUS} = 'Aprobado'", arrayOf(userId.toString()))
-        if (cursorEntregas.moveToFirst()) {
-            tvEntregas.text = cursorEntregas.getInt(0).toString()
-        }
-        cursorEntregas.close()
+        // 2. Lista de Registros
+        containerLotes.removeAllViews()
+        val cursor = db.rawQuery(
+            "SELECT * FROM ${DatabaseHelper.TABLE_REPORTS} WHERE ${DatabaseHelper.COLUMN_REPORT_USER_ID} = ? ORDER BY ${DatabaseHelper.COLUMN_REPORT_ID} DESC",
+            arrayOf(userId.toString())
+        )
 
-        // 3. DIBUJAR LOS LOTES PENDIENTES REALES
-        val queryPendientes = "SELECT ${DatabaseHelper.COLUMN_REPORT_ID}, ${DatabaseHelper.COLUMN_REPORT_TIPO}, ${DatabaseHelper.COLUMN_REPORT_PESO} FROM ${DatabaseHelper.TABLE_REPORTS} WHERE ${DatabaseHelper.COLUMN_REPORT_USER_ID} = ? AND ${DatabaseHelper.COLUMN_REPORT_STATUS} = 'Pendiente'"
-        val cursorPendientes = db.rawQuery(queryPendientes, arrayOf(userId.toString()))
-
-        if (cursorPendientes.moveToFirst()) {
+        if (cursor.moveToFirst()) {
             do {
-                val reporteId = cursorPendientes.getInt(0)
-                val tipo = cursorPendientes.getString(1)
-                val peso = cursorPendientes.getDouble(2)
+                val peso = cursor.getDouble(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_REPORT_PESO))
+                val tipo = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_REPORT_TIPO))
+                val fecha = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_REPORT_FECHA))
+                val status = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_REPORT_STATUS))
+                val fotoPath = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_REPORT_FOTO_PATH))
 
-                // Crear Tarjeta contenedora
-                val cardView = MaterialCardView(this)
-                cardView.setCardBackgroundColor(Color.WHITE)
-                cardView.radius = 32f
-                cardView.cardElevation = 0f
-                cardView.strokeWidth = 2
-                cardView.strokeColor = Color.parseColor("#E2E8F0")
-                val params = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-                params.setMargins(0, 0, 0, 24)
-                cardView.layoutParams = params
-
-                // Layout interno de la tarjeta
-                val internalLayout = LinearLayout(this)
-                internalLayout.orientation = LinearLayout.VERTICAL
-                internalLayout.setPadding(48, 48, 48, 48)
-
-                // Fila Superior (Título y Porcentaje)
-                val topRow = LinearLayout(this)
-                topRow.orientation = LinearLayout.HORIZONTAL
-                val titleView = TextView(this)
-                titleView.text = "Registro #$reporteId - $tipo\nCarga: $peso kg"
-                titleView.setTextColor(Color.parseColor("#0F172A"))
-                titleView.textSize = 15f
-                titleView.setTypeface(null, android.graphics.Typeface.BOLD)
-                titleView.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-
-                val statusView = TextView(this)
-                statusView.text = "En Revisión"
-                statusView.setTextColor(Color.parseColor("#F59E0B")) // Naranja oscuro
-                statusView.textSize = 12f
-                statusView.setTypeface(null, android.graphics.Typeface.BOLD)
-                statusView.gravity = Gravity.END
-
-                topRow.addView(titleView)
-                topRow.addView(statusView)
-
-                // Barra de progreso elegante
-                val progressBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal)
-                progressBar.isIndeterminate = false
-                progressBar.max = 100
-                progressBar.progress = 50 // Fijamos 50% para simular "En proceso"
-                progressBar.progressTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#F59E0B"))
-                val progressParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 24)
-                progressParams.setMargins(0, 24, 0, 0)
-                progressBar.layoutParams = progressParams
-
-                // Ensamblar todo
-                internalLayout.addView(topRow)
-                internalLayout.addView(progressBar)
-                cardView.addView(internalLayout)
-                container.addView(cardView)
-
-            } while (cursorPendientes.moveToNext())
-        } else {
-            // Si no tiene pendientes, mostrar un mensaje limpio
-            val emptyMsg = TextView(this)
-            emptyMsg.text = "No tienes procesos pendientes de revisión."
-            emptyMsg.setTextColor(Color.parseColor("#64748B"))
-            emptyMsg.setPadding(0, 32, 0, 0)
-            container.addView(emptyMsg)
+                crearTarjetaRegistro(peso, tipo, fecha, status, fotoPath)
+            } while (cursor.moveToNext())
         }
-        cursorPendientes.close()
+        cursor.close()
     }
+
+    private fun crearTarjetaRegistro(peso: Double, tipo: String, fecha: String, status: String, foto: String) {
+        val card = MaterialCardView(this).apply {
+            val params = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            params.setMargins(0, 0, 0, 24)
+            layoutParams = params
+
+            radius = 48f
+            cardElevation = 0f
+            strokeWidth = 2
+            // CORRECCIÓN 1: La ruta correcta es android.content.res
+            setStrokeColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#E2E8F0")))
+            setCardBackgroundColor(Color.WHITE)
+        }
+
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(32, 32, 32, 32)
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        // Imagen
+        val img = ImageView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(120, 120)
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            val file = File(foto)
+            if (file.exists()) {
+                setImageBitmap(BitmapFactory.decodeFile(file.absolutePath))
+            } else {
+                setImageResource(R.drawable.ic_menu_reporte)
+            }
+        }
+
+        // Textos
+        val col = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val paramsCol = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            paramsCol.marginStart = 24
+            layoutParams = paramsCol
+        }
+
+        val t1 = TextView(this).apply {
+            text = "$peso kg de $tipo"
+            // CORRECCIÓN 2: Uso directo de 'f' y el método setTypeface
+            textSize = 15f
+            setTypeface(Typeface.DEFAULT_BOLD)
+            setTextColor(Color.parseColor("#0F172A"))
+        }
+
+        val t2 = TextView(this).apply {
+            text = fecha
+            textSize = 12f
+            setTextColor(Color.parseColor("#64748B"))
+        }
+
+        col.addView(t1)
+        col.addView(t2)
+
+        // Estatus
+        val badge = TextView(this).apply {
+            text = status
+            textSize = 10f
+            setTypeface(Typeface.DEFAULT_BOLD)
+            setPadding(20, 8, 20, 8)
+            setTextColor(Color.WHITE)
+            background = GradientDrawable().apply {
+                cornerRadius = 100f
+                setColor(if (status == "Pendiente") Color.parseColor("#F59E0B") else Color.parseColor("#10B981"))
+            }
+        }
+
+        layout.addView(img)
+        layout.addView(col)
+        layout.addView(badge)
+        card.addView(layout)
+        containerLotes.addView(card)
+    }
+
+
 }

@@ -5,6 +5,9 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Permisos para el Escáner QR y la IA de Google -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="true" />
 
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
     <application
@@ -59,6 +62,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- Registro de las nuevas pantallas -->
+        <activity android:name=".user.AnalisisIAActivity" android:exported="false" />
+        <activity android:name=".user.SuscripcionActivity" android:exported="false" />
     </application>
 
 </manifest>

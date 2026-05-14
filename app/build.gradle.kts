@@ -46,4 +46,9 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     implementation("org.osmdroid:osmdroid-android:6.1.18")
     implementation("com.google.android.gms:play-services-location:21.1.0")
+    // 📷 Lector de Código QR (ZXing)
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+
+    // 🧠 Inteligencia Artificial Offline (Google ML Kit - Etiquetado de Imágenes)
+    implementation("com.google.mlkit:image-labeling:17.0.7")
 }
