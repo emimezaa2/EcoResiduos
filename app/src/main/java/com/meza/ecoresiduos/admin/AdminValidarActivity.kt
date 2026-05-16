@@ -2,13 +2,14 @@ package com.meza.ecoresiduos.admin
 
 import android.content.ContentValues
 import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Bundle
 import android.view.Gravity
-import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.meza.ecoresiduos.R
 import com.meza.ecoresiduos.db.DatabaseHelper
@@ -26,18 +27,17 @@ class AdminValidarActivity : AppCompatActivity() {
         val btnBack = findViewById<TextView>(R.id.btnBackValidar)
         val container = findViewById<LinearLayout>(R.id.containerValidar)
 
-        btnBack.setOnClickListener { onBackPressedDispatcher.onBackPressed() }
+        // Usamos finish() para volver de forma limpia a la pantalla anterior
+        btnBack.setOnClickListener { finish() }
 
         cargarTicketsPendientes(container)
     }
 
     private fun cargarTicketsPendientes(container: LinearLayout) {
-        // Limpiamos el contenedor por si se recarga la vista
         container.removeAllViews()
-
         val db = dbHelper.readableDatabase
 
-        // Hacemos un JOIN para obtener los datos del reporte Y el nombre del usuario
+        // Consulta unificada: Trae reportes pendientes y el nombre de quién lo hizo
         val query = """
             SELECT r.${DatabaseHelper.COLUMN_REPORT_ID}, u.${DatabaseHelper.COLUMN_USER_NAME}, 
                    r.${DatabaseHelper.COLUMN_REPORT_PESO}, r.${DatabaseHelper.COLUMN_REPORT_TIPO}, 
@@ -58,73 +58,79 @@ class AdminValidarActivity : AppCompatActivity() {
                 val tipo = cursor.getString(3)
                 val userId = cursor.getInt(4)
 
-                // 1. Crear Tarjeta Flotante
-                val cardView = MaterialCardView(this)
-                cardView.setCardBackgroundColor(Color.WHITE)
-                cardView.radius = 24f
-                cardView.cardElevation = 8f
-                val params = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-                params.setMargins(0, 0, 0, 32)
-                cardView.layoutParams = params
+                // 1. Tarjeta principal
+                val cardView = MaterialCardView(this).apply {
+                    val params = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                    params.setMargins(0, 0, 0, 32)
+                    layoutParams = params
+                    setCardBackgroundColor(Color.WHITE)
+                    radius = 24f
+                    cardElevation = 4f
+                }
 
-                // 2. Layout interno de la tarjeta
-                val internalLayout = LinearLayout(this)
-                internalLayout.orientation = LinearLayout.VERTICAL
-                internalLayout.setPadding(40, 40, 40, 40)
+                // 2. Contenedor interno con padding
+                val internalLayout = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(40, 40, 40, 40)
+                }
 
-                // 3. Textos (Sin emojis, puro texto técnico)
-                val tvHeader = TextView(this)
-                tvHeader.text = "Ticket #$reporteId"
-                tvHeader.setTextColor(Color.parseColor("#94A3B8"))
-                tvHeader.textSize = 12f
-                tvHeader.setTypeface(null, android.graphics.Typeface.BOLD)
+                // 3. Textos formateados
+                val tvHeader = TextView(this).apply {
+                    text = "Ticket #$reporteId"
+                    setTextColor(Color.parseColor("#94A3B8"))
+                    textSize = 12f
+                    setTypeface(null, Typeface.BOLD)
+                }
 
-                val tvUser = TextView(this)
-                tvUser.text = "Usuario: $userName"
-                tvUser.setTextColor(Color.parseColor("#0F172A"))
-                tvUser.textSize = 18f
-                tvUser.setTypeface(null, android.graphics.Typeface.BOLD)
-                tvUser.setPadding(0, 8, 0, 0)
+                val tvUser = TextView(this).apply {
+                    text = "Usuario: $userName"
+                    setTextColor(Color.parseColor("#0F172A"))
+                    textSize = 18f
+                    setTypeface(null, Typeface.BOLD)
+                    setPadding(0, 8, 0, 0)
+                }
 
-                val tvDetails = TextView(this)
-                tvDetails.text = "Carga Declarada: $peso kg\nClasificación: $tipo"
-                tvDetails.setTextColor(Color.parseColor("#64748B"))
-                tvDetails.textSize = 14f
-                tvDetails.setPadding(0, 8, 0, 24)
+                val tvDetails = TextView(this).apply {
+                    text = "Carga Declarada: $peso kg\nClasificación: $tipo"
+                    setTextColor(Color.parseColor("#64748B"))
+                    textSize = 14f
+                    setPadding(0, 8, 0, 24)
+                }
 
-                // 4. Botones de Acción
-                val btnLayout = LinearLayout(this)
-                btnLayout.orientation = LinearLayout.HORIZONTAL
-                btnLayout.gravity = Gravity.END
+                // 4. Botones alineados a la derecha
+                val btnLayout = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.END
+                }
 
-                val btnRechazar = Button(this)
-                btnRechazar.text = "Rechazar"
-                btnRechazar.setBackgroundColor(Color.parseColor("#FEF2F2")) // Rojo muy claro
-                btnRechazar.setTextColor(Color.parseColor("#EF4444")) // Texto rojo oscuro
-                val btnParamsR = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                btnParamsR.setMargins(0, 0, 16, 0)
-                btnRechazar.layoutParams = btnParamsR
+                val btnRechazar = MaterialButton(this).apply {
+                    text = "Rechazar"
+                    backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#FEF2F2"))
+                    setTextColor(Color.parseColor("#EF4444"))
+                    val btnParamsR = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    btnParamsR.setMargins(0, 0, 16, 0)
+                    layoutParams = btnParamsR
+                }
 
-                val btnAprobar = Button(this)
-                btnAprobar.text = "Aprobar"
-                btnAprobar.setBackgroundColor(Color.parseColor("#10B981")) // Verde Éxito
-                btnAprobar.setTextColor(Color.WHITE)
-                val btnParamsA = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                btnAprobar.layoutParams = btnParamsA
+                val btnAprobar = MaterialButton(this).apply {
+                    text = "Aprobar"
+                    backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#10B981"))
+                    setTextColor(Color.WHITE)
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                }
 
-                // --- LÓGICA DE LOS BOTONES ---
-
+                // 5. Lógica de clics (Desaparece la tarjeta tras presionar)
                 btnRechazar.setOnClickListener {
                     actualizarEstado(reporteId, "Rechazado", userId, peso, false)
-                    container.removeView(cardView) // Desaparece la tarjeta visualmente
+                    container.removeView(cardView)
                 }
 
                 btnAprobar.setOnClickListener {
                     actualizarEstado(reporteId, "Aprobado", userId, peso, true)
-                    container.removeView(cardView) // Desaparece la tarjeta visualmente
+                    container.removeView(cardView)
                 }
 
-                // Ensamblar la tarjeta
+                // 6. Ensamblaje final
                 btnLayout.addView(btnRechazar)
                 btnLayout.addView(btnAprobar)
                 internalLayout.addView(tvHeader)
@@ -132,48 +138,53 @@ class AdminValidarActivity : AppCompatActivity() {
                 internalLayout.addView(tvDetails)
                 internalLayout.addView(btnLayout)
                 cardView.addView(internalLayout)
-
                 container.addView(cardView)
 
             } while (cursor.moveToNext())
         } else {
-            // Si la bandeja está limpia
-            val emptyMsg = TextView(this)
-            emptyMsg.text = "Bandeja al día.\nNo hay registros pendientes de validación."
-            emptyMsg.setTextColor(Color.parseColor("#64748B"))
-            emptyMsg.textSize = 16f
-            emptyMsg.gravity = Gravity.CENTER
-            emptyMsg.setPadding(0, 100, 0, 0)
+            // Mensaje si no hay nada que aprobar
+            val emptyMsg = TextView(this).apply {
+                text = "Bandeja al día.\nNo hay registros pendientes de validación."
+                setTextColor(Color.parseColor("#64748B"))
+                textSize = 16f
+                gravity = Gravity.CENTER
+                setPadding(0, 100, 0, 0)
+            }
             container.addView(emptyMsg)
         }
         cursor.close()
     }
 
+    // ==========================================
+    // FUNCIÓN CENTRALIZADA (Reemplaza a aprobarReporte y rechazarReporte)
+    // ==========================================
     private fun actualizarEstado(reporteId: Int, nuevoEstado: String, userId: Int, peso: Double, sumarKilos: Boolean) {
         val db = dbHelper.writableDatabase
 
-        // 1. Actualizar el estado del reporte
-        val valuesReport = ContentValues().apply {
-            put(DatabaseHelper.COLUMN_REPORT_STATUS, nuevoEstado)
-        }
-        db.update(DatabaseHelper.TABLE_REPORTS, valuesReport, "${DatabaseHelper.COLUMN_REPORT_ID} = ?", arrayOf(reporteId.toString()))
+        // Iniciamos la transacción para proteger la base de datos
+        db.beginTransaction()
+        try {
+            // 1. Cambiar estado en la tabla de reportes
+            val valuesReport = ContentValues().apply { put(DatabaseHelper.COLUMN_REPORT_STATUS, nuevoEstado) }
+            db.update(DatabaseHelper.TABLE_REPORTS, valuesReport, "${DatabaseHelper.COLUMN_REPORT_ID} = ?", arrayOf(reporteId.toString()))
 
-        // 2. Si se aprueba, sumarle los kilos al usuario
-        if (sumarKilos) {
-            val cursorKilos = db.rawQuery("SELECT ${DatabaseHelper.COLUMN_USER_KILOS} FROM ${DatabaseHelper.TABLE_USERS} WHERE ${DatabaseHelper.COLUMN_USER_ID} = ?", arrayOf(userId.toString()))
-            if (cursorKilos.moveToFirst()) {
-                val kilosActuales = cursorKilos.getDouble(0)
-                val nuevosKilos = kilosActuales + peso
-
-                val valuesUser = ContentValues().apply {
-                    put(DatabaseHelper.COLUMN_USER_KILOS, nuevosKilos)
-                }
-                db.update(DatabaseHelper.TABLE_USERS, valuesUser, "${DatabaseHelper.COLUMN_USER_ID} = ?", arrayOf(userId.toString()))
+            // 2. Si es Aprobado, sumamos el peso al perfil del usuario
+            if (sumarKilos) {
+                db.execSQL("UPDATE ${DatabaseHelper.TABLE_USERS} SET ${DatabaseHelper.COLUMN_USER_KILOS} = ${DatabaseHelper.COLUMN_USER_KILOS} + ? WHERE ${DatabaseHelper.COLUMN_USER_ID} = ?", arrayOf(peso, userId))
             }
-            cursorKilos.close()
-            Toast.makeText(this, "Ticket Aprobado. Impacto sumado al usuario.", Toast.LENGTH_SHORT).show()
-        } else {
-            Toast.makeText(this, "Ticket Rechazado.", Toast.LENGTH_SHORT).show()
+
+            // Confirmamos que todo salió bien
+            db.setTransactionSuccessful()
+
+            // Mostramos feedback visual al Administrador
+            val mensaje = if (sumarKilos) "✅ Ticket Aprobado. Impacto sumado." else "❌ Ticket Rechazado."
+            Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show()
+
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error al procesar la solicitud en la base de datos.", Toast.LENGTH_SHORT).show()
+        } finally {
+            // Cerramos la transacción sin importar lo que pase
+            db.endTransaction()
         }
     }
 }

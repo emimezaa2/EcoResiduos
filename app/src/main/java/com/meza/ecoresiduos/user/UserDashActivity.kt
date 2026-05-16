@@ -33,10 +33,20 @@ class UserDashActivity : AppCompatActivity() {
         val tvUserNameDash = findViewById<TextView>(R.id.tvUserNameDash)
         val tvUserTotalKilos = findViewById<TextView>(R.id.tvUserTotalKilos)
         val cardReporte = findViewById<MaterialCardView>(R.id.cardReporte)
-        val cardIA = findViewById<MaterialCardView>(R.id.cardIA) // <--- NUEVA REFERENCIA IA
+        val cardIA = findViewById<MaterialCardView>(R.id.cardIA)
         val cardImpacto = findViewById<MaterialCardView>(R.id.cardImpacto)
         val cardEcoBot = findViewById<MaterialCardView>(R.id.cardEcoBot)
         val cardPuntos = findViewById<MaterialCardView>(R.id.cardPuntos)
+        val cardComunidadDash = findViewById<MaterialCardView>(R.id.cardComunidadDash)
+        val cardForoDash = findViewById<MaterialCardView>(R.id.cardForoDash)
+        val cardRecompensasDash = findViewById<MaterialCardView>(R.id.cardRecompensasDash)
+
+        cardComunidadDash.setOnClickListener { startActivity(Intent(this, UserComunidadActivity::class.java)) }
+        cardForoDash.setOnClickListener { startActivity(Intent(this, UserForoActivity::class.java)) }
+        cardRecompensasDash.setOnClickListener { startActivity(Intent(this, UserRecompensasActivity::class.java)) }
+
+        cardForoDash.setOnClickListener { startActivity(Intent(this, UserForoActivity::class.java)) }
+        cardRecompensasDash.setOnClickListener { startActivity(Intent(this, UserRecompensasActivity::class.java)) }
 
         cargarDatosUsuario(tvUserNameDash, tvUserTotalKilos)
 
@@ -53,7 +63,14 @@ class UserDashActivity : AppCompatActivity() {
                 R.id.nav_impacto -> startActivity(Intent(this, UserImpactoActivity::class.java))
                 R.id.nav_bot -> startActivity(Intent(this, UserEcobotActivity::class.java))
                 R.id.nav_puntos -> startActivity(Intent(this, UserPuntosActivity::class.java))
-                R.id.nav_premium -> startActivity(Intent(this, SuscripcionActivity::class.java)) // <--- NUEVA NAVEGACIÓN PREMIUM
+                R.id.nav_premium -> startActivity(Intent(this, SuscripcionActivity::class.java))
+                R.id.nav_perfil -> startActivity(Intent(this, UserPerfilActivity::class.java))
+                R.id.nav_recompensas -> startActivity(Intent(this, UserRecompensasActivity::class.java))
+
+                // --- LAS DOS RUTAS NUEVAS ---
+                R.id.nav_comunidad -> startActivity(Intent(this, UserComunidadActivity::class.java))
+                R.id.nav_foro -> startActivity(Intent(this, UserForoActivity::class.java))
+
                 R.id.nav_logout -> cerrarSesion()
             }
             drawerLayout.closeDrawer(GravityCompat.START)
@@ -62,7 +79,7 @@ class UserDashActivity : AppCompatActivity() {
 
         // 3. Mantener los clics de las tarjetas centrales (para atajos rápidos)
         cardReporte.setOnClickListener { startActivity(Intent(this, UserReporteActivity::class.java)) }
-        cardIA.setOnClickListener { startActivity(Intent(this, AnalisisIAActivity::class.java)) } // <--- CLIC IA
+        cardIA.setOnClickListener { startActivity(Intent(this, AnalisisIAActivity::class.java)) }
         cardImpacto.setOnClickListener { startActivity(Intent(this, UserImpactoActivity::class.java)) }
         cardEcoBot.setOnClickListener { startActivity(Intent(this, UserEcobotActivity::class.java)) }
         cardPuntos.setOnClickListener { startActivity(Intent(this, UserPuntosActivity::class.java)) }

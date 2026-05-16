@@ -1,12 +1,16 @@
 package com.meza.ecoresiduos.admin
 
+import android.content.ContentValues
 import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Bundle
 import android.view.Gravity
-import android.widget.ImageView
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.meza.ecoresiduos.R
 import com.meza.ecoresiduos.db.DatabaseHelper
@@ -21,114 +25,95 @@ class AdminComunidadActivity : AppCompatActivity() {
 
         dbHelper = DatabaseHelper(this)
 
-        val btnBack = findViewById<TextView>(R.id.btnBackComunidad)
-        val container = findViewById<LinearLayout>(R.id.containerComunidad)
+        val btnBack = findViewById<TextView>(R.id.btnBackAdminCom)
+        val container = findViewById<LinearLayout>(R.id.containerAdminComunidades)
+        val etNombre = findViewById<EditText>(R.id.etNombreAdminCom)
+        val btnCrear = findViewById<MaterialButton>(R.id.btnCrearGlobal)
 
         btnBack.setOnClickListener { onBackPressedDispatcher.onBackPressed() }
 
-        cargarDirectorio(container)
+        btnCrear.setOnClickListener {
+            val nombre = etNombre.text.toString().trim()
+            if (nombre.isNotEmpty()) {
+                guardarComunidad(nombre, container)
+                etNombre.text.clear()
+            } else {
+                Toast.makeText(this, "Por favor ingresa un nombre válido", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        cargarComunidades(container)
     }
 
-    private fun cargarDirectorio(container: LinearLayout) {
+    private fun guardarComunidad(nombre: String, container: LinearLayout) {
+        val db = dbHelper.writableDatabase
+        val values = ContentValues().apply {
+            put(DatabaseHelper.COLUMN_COM_NOMBRE, nombre)
+            put(DatabaseHelper.COLUMN_COM_TIPO, "Global")
+            put(DatabaseHelper.COLUMN_COM_CREADOR, 0) // 0 representa al Administrador
+            put(DatabaseHelper.COLUMN_COM_PUNTOS, 0.0)
+        }
+        db.insert(DatabaseHelper.TABLE_COMMUNITIES, null, values)
+        Toast.makeText(this, "Comunidad registrada con éxito", Toast.LENGTH_SHORT).show()
+        cargarComunidades(container)
+    }
+
+    private fun cargarComunidades(container: LinearLayout) {
+        container.removeAllViews()
         val db = dbHelper.readableDatabase
 
-        val query = "SELECT ${DatabaseHelper.COLUMN_USER_NAME}, ${DatabaseHelper.COLUMN_USER_EMAIL}, ${DatabaseHelper.COLUMN_USER_KILOS} FROM ${DatabaseHelper.TABLE_USERS} WHERE ${DatabaseHelper.COLUMN_USER_ROLE} != 'admin' ORDER BY ${DatabaseHelper.COLUMN_USER_KILOS} DESC"
-
+        val query = "SELECT ${DatabaseHelper.COLUMN_COM_NOMBRE}, ${DatabaseHelper.COLUMN_COM_TIPO} FROM ${DatabaseHelper.TABLE_COMMUNITIES} ORDER BY ${DatabaseHelper.COLUMN_COM_ID} DESC"
         val cursor = db.rawQuery(query, null)
 
         if (cursor.moveToFirst()) {
             do {
                 val nombre = cursor.getString(0)
-                val email = cursor.getString(1)
-                val kilos = cursor.getDouble(2)
+                val tipo = cursor.getString(1)
 
+                val cardView = MaterialCardView(this).apply {
+                    setCardBackgroundColor(Color.WHITE)
+                    radius = 24f
+                    cardElevation = 2f
+                    strokeWidth = 1
+                    strokeColor = Color.parseColor("#E2E8F0")
+                    val params = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                    params.setMargins(0, 0, 0, 24)
+                    layoutParams = params
+                }
 
-                val cardView = MaterialCardView(this)
-                cardView.setCardBackgroundColor(Color.WHITE)
-                cardView.radius = 24f
-                cardView.cardElevation = 4f
-                cardView.strokeWidth = 1
-                cardView.strokeColor = Color.parseColor("#E2E8F0") // Borde sutil
-                val params = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-                params.setMargins(0, 0, 0, 24) // Separación entre tarjetas
-                cardView.layoutParams = params
+                val layoutInterno = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(40, 40, 40, 40)
+                }
 
-                val rowLayout = LinearLayout(this)
-                rowLayout.orientation = LinearLayout.HORIZONTAL
-                rowLayout.gravity = Gravity.CENTER_VERTICAL
-                rowLayout.setPadding(32, 32, 32, 32)
+                val tvNombre = TextView(this).apply {
+                    text = "Comunidad: $nombre"
+                    setTextColor(Color.parseColor("#0F172A"))
+                    textSize = 16f
+                    setTypeface(null, Typeface.BOLD)
+                }
 
-                // 3. Avatar del Usuario (Círculo morado claro)
-                val avatarCard = MaterialCardView(this)
-                avatarCard.setCardBackgroundColor(Color.parseColor("#F3E8FF"))
-                avatarCard.radius = 50f
-                avatarCard.strokeWidth = 0
-                val avatarParams = LinearLayout.LayoutParams(100, 100)
-                avatarCard.layoutParams = avatarParams
+                val tvDetalle = TextView(this).apply {
+                    text = "Tipo: $tipo"
+                    setTextColor(Color.parseColor("#64748B"))
+                    textSize = 12f
+                    setPadding(0, 4, 0, 0)
+                }
 
-                val avatarIcon = ImageView(this)
-                avatarIcon.setImageResource(R.drawable.ic_profile)
-                avatarIcon.setColorFilter(Color.parseColor("#9333EA"))
-                avatarIcon.setPadding(20, 20, 20, 20)
-                avatarCard.addView(avatarIcon)
-
-                // 4. Datos del Usuario (Centro)
-                val textLayout = LinearLayout(this)
-                textLayout.orientation = LinearLayout.VERTICAL
-                val textParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                textParams.setMargins(24, 0, 16, 0)
-                textLayout.layoutParams = textParams
-
-                val tvName = TextView(this)
-                tvName.text = nombre
-                tvName.setTextColor(Color.parseColor("#0F172A"))
-                tvName.textSize = 16f
-                tvName.setTypeface(null, android.graphics.Typeface.BOLD)
-
-                val tvEmail = TextView(this)
-                tvEmail.text = email
-                tvEmail.setTextColor(Color.parseColor("#64748B"))
-                tvEmail.textSize = 12f
-
-                textLayout.addView(tvName)
-                textLayout.addView(tvEmail)
-
-                // 5. Impacto en Kg (Derecha)
-                val kgLayout = LinearLayout(this)
-                kgLayout.orientation = LinearLayout.VERTICAL
-                kgLayout.gravity = Gravity.END
-
-                val tvKilos = TextView(this)
-                tvKilos.text = "${String.format("%.1f", kilos)} kg"
-                tvKilos.setTextColor(Color.parseColor("#10B981")) // Verde esmeralda brillante
-                tvKilos.textSize = 18f
-                tvKilos.setTypeface(null, android.graphics.Typeface.BOLD)
-
-                val tvLabel = TextView(this)
-                tvLabel.text = "Acumulado"
-                tvLabel.setTextColor(Color.parseColor("#94A3B8"))
-                tvLabel.textSize = 10f
-
-                kgLayout.addView(tvKilos)
-                kgLayout.addView(tvLabel)
-
-                // Ensamblar la fila
-                rowLayout.addView(avatarCard)
-                rowLayout.addView(textLayout)
-                rowLayout.addView(kgLayout)
-
-                cardView.addView(rowLayout)
+                layoutInterno.addView(tvNombre)
+                layoutInterno.addView(tvDetalle)
+                cardView.addView(layoutInterno)
                 container.addView(cardView)
 
             } while (cursor.moveToNext())
         } else {
-            // Si no hay usuarios aún
-            val emptyMsg = TextView(this)
-            emptyMsg.text = "La comunidad está vacía.\nAún no hay usuarios registrados."
-            emptyMsg.setTextColor(Color.parseColor("#64748B"))
-            emptyMsg.textSize = 16f
-            emptyMsg.gravity = Gravity.CENTER
-            emptyMsg.setPadding(0, 100, 0, 0)
+            val emptyMsg = TextView(this).apply {
+                text = "No hay comunidades registradas."
+                setTextColor(Color.parseColor("#64748B"))
+                textSize = 14f
+                gravity = Gravity.CENTER
+                setPadding(0, 100, 0, 0)
+            }
             container.addView(emptyMsg)
         }
         cursor.close()
