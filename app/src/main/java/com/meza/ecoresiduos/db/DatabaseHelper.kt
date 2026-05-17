@@ -44,6 +44,11 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         const val COLUMN_COM_TIPO = "tipo"
         const val COLUMN_COM_CREADOR = "creador_id"
         const val COLUMN_COM_PUNTOS = "puntos_totales"
+
+        const val TABLE_MIEMBROS = "miembros_comunidad"
+        const val COLUMN_MIEMBRO_ID = "id_miembro"
+        const val COLUMN_MIEMBRO_USER_ID = "user_id"
+        const val COLUMN_MIEMBRO_COM_ID = "comunidad_id"
     }
 
     override fun onCreate(db: SQLiteDatabase?) {
@@ -90,6 +95,18 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
             )
         """.trimIndent()
         db?.execSQL(createCommunitiesTable)
+
+
+        val createMiembros = """
+            CREATE TABLE $TABLE_MIEMBROS (
+                $COLUMN_MIEMBRO_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                $COLUMN_MIEMBRO_USER_ID INTEGER,
+                $COLUMN_MIEMBRO_COM_ID INTEGER,
+                FOREIGN KEY($COLUMN_MIEMBRO_USER_ID) REFERENCES $TABLE_USERS($COLUMN_USER_ID),
+                FOREIGN KEY($COLUMN_MIEMBRO_COM_ID) REFERENCES $TABLE_COMMUNITIES($COLUMN_COM_ID)
+            )
+        """.trimIndent()
+        db?.execSQL(createMiembros)
     }
 
     override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {

@@ -49,6 +49,10 @@ class UserReporteActivity : AppCompatActivity() {
 
         dbHelper = DatabaseHelper(this)
 
+        // Obtener el ID del usuario en sesión
+        val prefs = getSharedPreferences("SesionEco", Context.MODE_PRIVATE)
+        val userId = prefs.getInt("user_id", -1)
+
         val btnBack = findViewById<TextView>(R.id.btnBackReporte)
         val tvDisplayPeso = findViewById<TextView>(R.id.tvDisplayPeso)
         val sliderPeso = findViewById<Slider>(R.id.sliderPeso)
@@ -60,7 +64,7 @@ class UserReporteActivity : AppCompatActivity() {
         placeholderFoto = findViewById(R.id.placeholderFoto)
         spinnerPuntos = findViewById(R.id.spinnerPuntos)
 
-        btnBack.setOnClickListener { onBackPressedDispatcher.onBackPressed() }
+        btnBack.setOnClickListener { finish() }
 
         sliderPeso.addOnChangeListener { _, value, _ ->
             tvDisplayPeso.text = "${value} kg"
@@ -74,41 +78,39 @@ class UserReporteActivity : AppCompatActivity() {
             }
         }
 
-        // Cargar los contenedores que el Admin creó en el mapa
-        // Cargar los contenedores que el Admin creó en el mapa
-        cargarPuntosDisponibles()
+        // Cargar SOLO los contenedores de las comunidades del usuario
+        cargarPuntosDisponibles(userId)
 
         // =========================================================
-        // NUEVO: ATRAPAR EL CONTENEDOR ESCANEADO DESDE EL QR
+        // ATRAPAR EL CONTENEDOR ESCANEADO DESDE EL QR
         // =========================================================
         val contenedorQueVieneDelQR = intent.getStringExtra("CONTENEDOR_SELECCIONADO")
 
         // =========================================================
-        // NUEVO: ATRAPAR LA CLASIFICACIÓN DE LA INTELIGENCIA ARTIFICIAL
+        // ATRAPAR LA CLASIFICACIÓN DE LA INTELIGENCIA ARTIFICIAL
         // =========================================================
         val tipoDesdeIA = intent.getStringExtra("TIPO_DETECTADO_IA")
         if (tipoDesdeIA == "Orgánico") {
-            toggleTipo.check(R.id.btnOrganico) // Selecciona Orgánico automáticamente
-            Toast.makeText(this, "️ IA: Orgánico detectado", Toast.LENGTH_SHORT).show()
+            toggleTipo.check(R.id.btnOrganico)
+            Toast.makeText(this, "IA: Organico detectado", Toast.LENGTH_SHORT).show()
         } else if (tipoDesdeIA == "Inorgánico") {
-            // Revisa si tu botón en el XML se llama btnSeco o btnInorganico y ajusta este ID:
+            // Ajusta el ID según cómo se llame en tu XML (btnSeco o btnInorganico)
             // toggleTipo.check(R.id.btnSeco)
-            Toast.makeText(this, "️ IA: Inorgánico detectado", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "IA: Inorganico detectado", Toast.LENGTH_SHORT).show()
         }
+
         // =========================================================
         if (contenedorQueVieneDelQR != null) {
-            // Recorremos todos los elementos del Spinner para buscar el que coincida
             for (i in 0 until spinnerPuntos.adapter.count) {
                 val puntoEnLista = spinnerPuntos.adapter.getItem(i) as PuntoMenu
-
-                // Si el nombre en la lista es igual al que escaneamos...
                 if (puntoEnLista.nombre == contenedorQueVieneDelQR) {
-                    spinnerPuntos.setSelection(i) // Lo seleccionamos automáticamente
+                    spinnerPuntos.setSelection(i)
                     Toast.makeText(this, "Contenedor verificado por QR", Toast.LENGTH_SHORT).show()
-                    break // Detenemos la búsqueda
+                    break
                 }
             }
         }
+
         // =========================================================
         btnFinalizar.setOnClickListener {
             if (fotoBitmap == null) {
@@ -118,32 +120,37 @@ class UserReporteActivity : AppCompatActivity() {
 
             val puntoSeleccionado = spinnerPuntos.selectedItem as? PuntoMenu
             if (puntoSeleccionado == null || puntoSeleccionado.id == -1) {
-                Toast.makeText(this, "Por favor selecciona un punto válido.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Por favor selecciona un punto valido.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
             val peso = sliderPeso.value.toDouble()
             val tipoResiduo = if (toggleTipo.checkedButtonId == R.id.btnOrganico) "Orgánico" else "Seco"
 
-            val prefs = getSharedPreferences("SesionEco", Context.MODE_PRIVATE)
-            val userId = prefs.getInt("user_id", -1)
-
             if (userId != -1) {
-                // 2. Guardar la foto físicamente y obtener la ruta
                 fotoPath = guardarImagenEnAlmacenamiento(fotoBitmap!!)
-
-                // 3. Mandar todos los datos cruzados a la BD
                 guardarReporteEnBD(userId, puntoSeleccionado.id, peso, tipoResiduo, fotoPath)
             }
         }
     }
 
-    private fun cargarPuntosDisponibles() {
+    private fun cargarPuntosDisponibles(userId: Int) {
         val db = dbHelper.readableDatabase
         val listaPuntos = mutableListOf<PuntoMenu>()
 
-        // Solo mostramos los contenedores que NO están en mantenimiento
-        val cursor = db.rawQuery("SELECT ${DatabaseHelper.COLUMN_PUNTO_ID}, ${DatabaseHelper.COLUMN_PUNTO_NOMBRE} FROM ${DatabaseHelper.TABLE_PUNTOS} WHERE ${DatabaseHelper.COLUMN_PUNTO_ESTADO} != 'Mantenimiento'", null)
+        // Consulta estricta: Traer puntos que no estén en mantenimiento Y que pertenezcan a una comunidad del usuario
+        val query = """
+            SELECT p.${DatabaseHelper.COLUMN_PUNTO_ID}, p.${DatabaseHelper.COLUMN_PUNTO_NOMBRE} 
+            FROM ${DatabaseHelper.TABLE_PUNTOS} p
+            WHERE p.${DatabaseHelper.COLUMN_PUNTO_ESTADO} != 'Mantenimiento' 
+            AND p.${DatabaseHelper.COLUMN_PUNTO_COMUNIDAD_ID} IN (
+                SELECT ${DatabaseHelper.COLUMN_MIEMBRO_COM_ID} 
+                FROM ${DatabaseHelper.TABLE_MIEMBROS} 
+                WHERE ${DatabaseHelper.COLUMN_MIEMBRO_USER_ID} = ?
+            )
+        """.trimIndent()
+
+        val cursor = db.rawQuery(query, arrayOf(userId.toString()))
 
         if (cursor.moveToFirst()) {
             do {
@@ -155,7 +162,7 @@ class UserReporteActivity : AppCompatActivity() {
         cursor.close()
 
         if (listaPuntos.isEmpty()) {
-            listaPuntos.add(PuntoMenu(-1, "Sin puntos disponibles en el área"))
+            listaPuntos.add(PuntoMenu(-1, "Sin puntos asignados a tu red"))
         }
 
         val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, listaPuntos)
@@ -163,13 +170,12 @@ class UserReporteActivity : AppCompatActivity() {
     }
 
     private fun guardarImagenEnAlmacenamiento(bitmap: Bitmap): String {
-        // Guardamos la foto en el almacenamiento seguro de la app
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val filename = "eco_evidencia_${timeStamp}.jpg"
         val file = File(filesDir, filename)
 
         FileOutputStream(file).use { out ->
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out) // 85% de calidad para no saturar memoria
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)
         }
         return file.absolutePath
     }
@@ -179,13 +185,12 @@ class UserReporteActivity : AppCompatActivity() {
 
         val values = ContentValues().apply {
             put(DatabaseHelper.COLUMN_REPORT_USER_ID, userId)
-            put(DatabaseHelper.COLUMN_REPORT_PUNTO_ID, puntoId) // <- Vinculado al punto del Admin!
+            put(DatabaseHelper.COLUMN_REPORT_PUNTO_ID, puntoId)
             put(DatabaseHelper.COLUMN_REPORT_PESO, peso)
             put(DatabaseHelper.COLUMN_REPORT_TIPO, tipo)
-            put(DatabaseHelper.COLUMN_REPORT_FOTO_PATH, rutaFoto) // <- Guardando la foto
+            put(DatabaseHelper.COLUMN_REPORT_FOTO_PATH, rutaFoto)
             put(DatabaseHelper.COLUMN_REPORT_STATUS, "Pendiente")
 
-            // Fecha automática
             val fechaHoy = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
             put(DatabaseHelper.COLUMN_REPORT_FECHA, fechaHoy)
         }
@@ -193,7 +198,7 @@ class UserReporteActivity : AppCompatActivity() {
         val newRowId = db.insert(DatabaseHelper.TABLE_REPORTS, null, values)
 
         if (newRowId != -1L) {
-            Toast.makeText(this, "Registro procesado y foto guardada.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Registro procesado con exito.", Toast.LENGTH_LONG).show()
             finish()
         }
     }

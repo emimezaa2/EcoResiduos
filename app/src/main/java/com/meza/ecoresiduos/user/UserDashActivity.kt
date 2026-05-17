@@ -22,6 +22,10 @@ class UserDashActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Mantenemos el bloqueo definitivo de modo oscuro
+        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO)
+
         setContentView(R.layout.activity_user_dash)
 
         dbHelper = DatabaseHelper(this)
@@ -29,7 +33,7 @@ class UserDashActivity : AppCompatActivity() {
         val navView = findViewById<NavigationView>(R.id.navView)
         val btnOpenMenu = findViewById<ImageView>(R.id.btnOpenMenu)
 
-        // Referencias de la UI
+        // Referencias de la UI originales e intactas
         val tvUserNameDash = findViewById<TextView>(R.id.tvUserNameDash)
         val tvUserTotalKilos = findViewById<TextView>(R.id.tvUserTotalKilos)
         val cardReporte = findViewById<MaterialCardView>(R.id.cardReporte)
@@ -41,11 +45,9 @@ class UserDashActivity : AppCompatActivity() {
         val cardForoDash = findViewById<MaterialCardView>(R.id.cardForoDash)
         val cardRecompensasDash = findViewById<MaterialCardView>(R.id.cardRecompensasDash)
 
+        // Redirección segura multi-grupo unificada
         cardComunidadDash.setOnClickListener { startActivity(Intent(this, UserComunidadActivity::class.java)) }
-        cardForoDash.setOnClickListener { startActivity(Intent(this, UserForoActivity::class.java)) }
-        cardRecompensasDash.setOnClickListener { startActivity(Intent(this, UserRecompensasActivity::class.java)) }
-
-        cardForoDash.setOnClickListener { startActivity(Intent(this, UserForoActivity::class.java)) }
+        cardForoDash.setOnClickListener { startActivity(Intent(this, UserComunidadActivity::class.java)) }
         cardRecompensasDash.setOnClickListener { startActivity(Intent(this, UserRecompensasActivity::class.java)) }
 
         cargarDatosUsuario(tvUserNameDash, tvUserTotalKilos)
@@ -67,9 +69,8 @@ class UserDashActivity : AppCompatActivity() {
                 R.id.nav_perfil -> startActivity(Intent(this, UserPerfilActivity::class.java))
                 R.id.nav_recompensas -> startActivity(Intent(this, UserRecompensasActivity::class.java))
 
-                // --- LAS DOS RUTAS NUEVAS ---
                 R.id.nav_comunidad -> startActivity(Intent(this, UserComunidadActivity::class.java))
-                R.id.nav_foro -> startActivity(Intent(this, UserForoActivity::class.java))
+                R.id.nav_foro -> startActivity(Intent(this, UserComunidadActivity::class.java))
 
                 R.id.nav_logout -> cerrarSesion()
             }
@@ -77,7 +78,7 @@ class UserDashActivity : AppCompatActivity() {
             true
         }
 
-        // 3. Mantener los clics de las tarjetas centrales (para atajos rápidos)
+        // 3. Atajos rápidos centrales
         cardReporte.setOnClickListener { startActivity(Intent(this, UserReporteActivity::class.java)) }
         cardIA.setOnClickListener { startActivity(Intent(this, AnalisisIAActivity::class.java)) }
         cardImpacto.setOnClickListener { startActivity(Intent(this, UserImpactoActivity::class.java)) }
@@ -98,6 +99,19 @@ class UserDashActivity : AppCompatActivity() {
 
         if (userId != -1) {
             val db = dbHelper.readableDatabase
+
+            // Referencias añadidas de forma segura para las nuevas tarjetas
+            val tvTokens = findViewById<TextView>(R.id.tvUserTokensDash)
+            val tvPremios = findViewById<TextView>(R.id.tvUserPremiosDash)
+            val tvStatRegistros = findViewById<TextView>(R.id.tvStatRegistros)
+            val tvStatValidados = findViewById<TextView>(R.id.tvStatValidados)
+            val tvStatComunidades = findViewById<TextView>(R.id.tvStatComunidades)
+
+            // EXTRAER LA CABECERA DEL MENÚ LATERAL DINÁMICAMENTE
+            val navView = findViewById<NavigationView>(R.id.navView)
+            val headerView = navView?.getHeaderView(0)
+            val tvUserNameMenu = headerView?.findViewById<TextView>(R.id.tvUserNameMenu)
+
             val cursor = db.rawQuery("SELECT ${DatabaseHelper.COLUMN_USER_NAME}, ${DatabaseHelper.COLUMN_USER_KILOS} FROM ${DatabaseHelper.TABLE_USERS} WHERE ${DatabaseHelper.COLUMN_USER_ID} = ?", arrayOf(userId.toString()))
 
             if (cursor.moveToFirst()) {
@@ -105,10 +119,32 @@ class UserDashActivity : AppCompatActivity() {
                 val kilos = cursor.getDouble(1)
                 val primerNombre = nombreCompleto.split(" ").firstOrNull() ?: "Usuario"
 
+                // Inyectamos el primer nombre en el Dashboard (Ej: "emiliano")
                 tvName.text = primerNombre
-                tvKilos.text = "$kilos kg"
+                tvKilos.text = String.format("%.1f kg", kilos)
+
+                // ¡CORRECCIÓN AQUÍ! Inyectamos el nombre completo en la cabecera del menú lateral
+                if (tvUserNameMenu != null) {
+                    tvUserNameMenu.text = nombreCompleto
+                }
+
+                if (tvTokens != null) tvTokens.text = "150"
+                if (tvPremios != null) tvPremios.text = "3"
             }
             cursor.close()
+
+            // Actualización automática del módulo de estadísticas triples
+            val cursorReg = db.rawQuery("SELECT COUNT(*) FROM ${DatabaseHelper.TABLE_REPORTS} WHERE ${DatabaseHelper.COLUMN_REPORT_USER_ID} = ?", arrayOf(userId.toString()))
+            if (cursorReg.moveToFirst() && tvStatRegistros != null) tvStatRegistros.text = cursorReg.getInt(0).toString()
+            cursorReg.close()
+
+            val cursorVal = db.rawQuery("SELECT COUNT(*) FROM ${DatabaseHelper.TABLE_REPORTS} WHERE ${DatabaseHelper.COLUMN_REPORT_USER_ID} = ? AND ${DatabaseHelper.COLUMN_REPORT_STATUS} = 'Aprobado'", arrayOf(userId.toString()))
+            if (cursorVal.moveToFirst() && tvStatValidados != null) tvStatValidados.text = cursorVal.getInt(0).toString()
+            cursorVal.close()
+
+            val cursorCom = db.rawQuery("SELECT COUNT(*) FROM ${DatabaseHelper.TABLE_MIEMBROS} WHERE ${DatabaseHelper.COLUMN_MIEMBRO_USER_ID} = ?", arrayOf(userId.toString()))
+            if (cursorCom.moveToFirst() && tvStatComunidades != null) tvStatComunidades.text = cursorCom.getInt(0).toString()
+            cursorCom.close()
         }
     }
 

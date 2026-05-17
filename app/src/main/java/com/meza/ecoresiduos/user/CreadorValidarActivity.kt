@@ -1,6 +1,7 @@
-package com.meza.ecoresiduos.admin
+package com.meza.ecoresiduos.user
 
 import android.content.ContentValues
+import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
@@ -14,31 +15,35 @@ import com.google.android.material.card.MaterialCardView
 import com.meza.ecoresiduos.R
 import com.meza.ecoresiduos.db.DatabaseHelper
 
-class AdminValidarActivity : AppCompatActivity() {
+class CreadorValidarActivity : AppCompatActivity() {
 
     private lateinit var dbHelper: DatabaseHelper
+    private var userIdActual: Int = -1
+    private var comunidadIdSeleccionada: Int = -1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_admin_validar)
+        setContentView(R.layout.activity_creador_validar)
 
         dbHelper = DatabaseHelper(this)
 
-        val btnBack = findViewById<TextView>(R.id.btnBackValidar)
-        val container = findViewById<LinearLayout>(R.id.containerValidar)
+        val prefs = getSharedPreferences("SesionEco", Context.MODE_PRIVATE)
+        userIdActual = prefs.getInt("user_id", -1)
 
-        // Usamos finish() para volver de forma limpia a la pantalla anterior
-        btnBack.setOnClickListener { finish() }
+        // Atrapamos el ID de la comunidad que el creador seleccionó
+        comunidadIdSeleccionada = intent.getIntExtra("COMUNIDAD_ID", -1)
 
-        cargarTicketsPendientes(container)
+        findViewById<TextView>(R.id.btnBackCreadorValidar).setOnClickListener { finish() }
+
+        val container = findViewById<LinearLayout>(R.id.containerCreadorValidar)
+        cargarTicketsDeMiComunidad(container)
     }
 
-    private fun cargarTicketsPendientes(container: LinearLayout) {
+    private fun cargarTicketsDeMiComunidad(container: LinearLayout) {
         container.removeAllViews()
         val db = dbHelper.readableDatabase
 
-
-        // Consulta robusta: Trae lo Global y lo que no tenga comunidad (huérfano)
+        // DOBLE CANDADO: Que el reporte sea de la comunidad exacta que se tocó, y que yo sea el creador.
         val query = """
             SELECT r.${DatabaseHelper.COLUMN_REPORT_ID}, u.${DatabaseHelper.COLUMN_USER_NAME}, 
                    r.${DatabaseHelper.COLUMN_REPORT_PESO}, r.${DatabaseHelper.COLUMN_REPORT_TIPO}, 
@@ -48,10 +53,11 @@ class AdminValidarActivity : AppCompatActivity() {
             INNER JOIN ${DatabaseHelper.TABLE_PUNTOS} p ON r.${DatabaseHelper.COLUMN_REPORT_PUNTO_ID} = p.${DatabaseHelper.COLUMN_PUNTO_ID}
             INNER JOIN ${DatabaseHelper.TABLE_COMMUNITIES} c ON p.${DatabaseHelper.COLUMN_PUNTO_COMUNIDAD_ID} = c.${DatabaseHelper.COLUMN_COM_ID}
             WHERE r.${DatabaseHelper.COLUMN_REPORT_STATUS} = 'Pendiente' 
-            AND c.${DatabaseHelper.COLUMN_COM_TIPO} = 'Global'
-        """.trimIndent()
+            AND c.${DatabaseHelper.COLUMN_COM_ID} = ? 
+            AND c.${DatabaseHelper.COLUMN_COM_CREADOR} = ?
+        """
 
-        val cursor = db.rawQuery(query, null)
+        val cursor = db.rawQuery(query, arrayOf(comunidadIdSeleccionada.toString(), userIdActual.toString()))
 
         if (cursor.moveToFirst()) {
             do {
@@ -59,9 +65,8 @@ class AdminValidarActivity : AppCompatActivity() {
                 val userName = cursor.getString(1)
                 val peso = cursor.getDouble(2)
                 val tipo = cursor.getString(3)
-                val userId = cursor.getInt(4)
+                val userReportoId = cursor.getInt(4)
 
-                // 1. Tarjeta principal
                 val cardView = MaterialCardView(this).apply {
                     val params = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
                     params.setMargins(0, 0, 0, 32)
@@ -71,13 +76,11 @@ class AdminValidarActivity : AppCompatActivity() {
                     cardElevation = 4f
                 }
 
-                // 2. Contenedor interno con padding
                 val internalLayout = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
                     setPadding(40, 40, 40, 40)
                 }
 
-                // 3. Textos formateados
                 val tvHeader = TextView(this).apply {
                     text = "Ticket #$reporteId"
                     setTextColor(Color.parseColor("#94A3B8"))
@@ -94,13 +97,12 @@ class AdminValidarActivity : AppCompatActivity() {
                 }
 
                 val tvDetails = TextView(this).apply {
-                    text = "Carga Declarada: $peso kg\nClasificación: $tipo"
+                    text = "Carga Declarada: $peso kg\nClasificacion: $tipo"
                     setTextColor(Color.parseColor("#64748B"))
                     textSize = 14f
                     setPadding(0, 8, 0, 24)
                 }
 
-                // 4. Botones alineados a la derecha
                 val btnLayout = LinearLayout(this).apply {
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.END
@@ -110,9 +112,7 @@ class AdminValidarActivity : AppCompatActivity() {
                     text = "Rechazar"
                     backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#FEF2F2"))
                     setTextColor(Color.parseColor("#EF4444"))
-                    val btnParamsR = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                    btnParamsR.setMargins(0, 0, 16, 0)
-                    layoutParams = btnParamsR
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { setMargins(0, 0, 16, 0) }
                 }
 
                 val btnAprobar = MaterialButton(this).apply {
@@ -122,18 +122,16 @@ class AdminValidarActivity : AppCompatActivity() {
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 }
 
-                // 5. Lógica de clics (Desaparece la tarjeta tras presionar)
                 btnRechazar.setOnClickListener {
-                    actualizarEstado(reporteId, "Rechazado", userId, peso, false)
+                    actualizarEstado(reporteId, "Rechazado", userReportoId, peso, false)
                     container.removeView(cardView)
                 }
 
                 btnAprobar.setOnClickListener {
-                    actualizarEstado(reporteId, "Aprobado", userId, peso, true)
+                    actualizarEstado(reporteId, "Aprobado", userReportoId, peso, true)
                     container.removeView(cardView)
                 }
 
-                // 6. Ensamblaje final
                 btnLayout.addView(btnRechazar)
                 btnLayout.addView(btnAprobar)
                 internalLayout.addView(tvHeader)
@@ -145,9 +143,8 @@ class AdminValidarActivity : AppCompatActivity() {
 
             } while (cursor.moveToNext())
         } else {
-            // Mensaje si no hay nada que aprobar
             val emptyMsg = TextView(this).apply {
-                text = "Bandeja al día.\nNo hay registros pendientes de validación."
+                text = "Bandeja al dia.\nNo hay registros pendientes."
                 setTextColor(Color.parseColor("#64748B"))
                 textSize = 16f
                 gravity = Gravity.CENTER
@@ -158,35 +155,19 @@ class AdminValidarActivity : AppCompatActivity() {
         cursor.close()
     }
 
-    // ==========================================
-    // FUNCIÓN CENTRALIZADA (Reemplaza a aprobarReporte y rechazarReporte)
-    // ==========================================
     private fun actualizarEstado(reporteId: Int, nuevoEstado: String, userId: Int, peso: Double, sumarKilos: Boolean) {
         val db = dbHelper.writableDatabase
-
-        // Iniciamos la transacción para proteger la base de datos
         db.beginTransaction()
         try {
-            // 1. Cambiar estado en la tabla de reportes
             val valuesReport = ContentValues().apply { put(DatabaseHelper.COLUMN_REPORT_STATUS, nuevoEstado) }
             db.update(DatabaseHelper.TABLE_REPORTS, valuesReport, "${DatabaseHelper.COLUMN_REPORT_ID} = ?", arrayOf(reporteId.toString()))
 
-            // 2. Si es Aprobado, sumamos el peso al perfil del usuario
             if (sumarKilos) {
                 db.execSQL("UPDATE ${DatabaseHelper.TABLE_USERS} SET ${DatabaseHelper.COLUMN_USER_KILOS} = ${DatabaseHelper.COLUMN_USER_KILOS} + ? WHERE ${DatabaseHelper.COLUMN_USER_ID} = ?", arrayOf(peso, userId))
             }
-
-            // Confirmamos que todo salió bien
             db.setTransactionSuccessful()
-
-            // Mostramos feedback visual al Administrador
-            val mensaje = if (sumarKilos) "✅ Ticket Aprobado. Impacto sumado." else "❌ Ticket Rechazado."
-            Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show()
-
-        } catch (e: Exception) {
-            Toast.makeText(this, "Error al procesar la solicitud en la base de datos.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, if (sumarKilos) "Ticket Aprobado" else "Ticket Rechazado", Toast.LENGTH_SHORT).show()
         } finally {
-            // Cerramos la transacción sin importar lo que pase
             db.endTransaction()
         }
     }

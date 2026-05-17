@@ -126,23 +126,42 @@ class AnalisisIAActivity : AppCompatActivity() {
                 // Si la IA detecta algo raro que no está en la lista, asumimos por default que es Inorgánico
                 val nombreResiduo = info?.nombre ?: "Objeto Detectado"
                 val categoriaResiduo = info?.categoria ?: "Inorgánico"
-                val confianza = (labelPrincipal.confidence * 100).toInt()
 
-                // Formateado limpio y centrado para la UI
-                val reporte = """
-                    RESULTADO DEL ANÁLISIS:
-                    
-                    $nombreResiduo
-                     Clasificación: $categoriaResiduo
-                    Seguridad: $confianza%
-                """.trimIndent()
+                // Variable mutable para forzar a 0% si rompe la regla de negocio
+                var confianza = (labelPrincipal.confidence * 100).toInt()
+
+                // APLICACIÓN DE LA REGLA DE NEGOCIO PEDIDA
+                val reporte: String
+                if (categoriaResiduo == "Inorgánico") {
+                    confianza = 0 // Forzamos a cero por ciento seguro
+                    btnRegistrarIA.isEnabled = false // Bloqueamos el botón de guardar
+
+                    reporte = """
+                        RESULTADO DEL ANÁLISIS:
+                        
+                        $nombreResiduo
+                        Clasificación: $categoriaResiduo
+                        Seguridad: $confianza%
+                        
+                        No se puede reciclar.
+                        Solo aceptamos material Orgánico.
+                    """.trimIndent()
+                } else {
+                    btnRegistrarIA.isEnabled = true // Habilitamos si cumple con ser orgánico
+
+                    reporte = """
+                        RESULTADO DEL ANÁLISIS:
+                        
+                        $nombreResiduo
+                        Clasificación: $categoriaResiduo
+                        Seguridad: $confianza%
+                    """.trimIndent()
+                }
 
                 tvResultadosIA.text = reporte
 
                 // Centramos el texto programáticamente para que se vea como en tu captura
                 tvResultadosIA.textAlignment = TextView.TEXT_ALIGNMENT_CENTER
-
-                btnRegistrarIA.isEnabled = true
             }
             .addOnFailureListener {
                 tvResultadosIA.text = " Error en el motor de IA. Intenta de nuevo."

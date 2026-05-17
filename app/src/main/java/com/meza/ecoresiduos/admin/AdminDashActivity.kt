@@ -72,23 +72,41 @@ class AdminDashActivity : AppCompatActivity() {
 
         val db = dbHelper.readableDatabase
 
-        // Contar Usuarios
+        // 1. Contar Usuarios (Este se queda igual, el Admin sí debe ver a todos los usuarios del sistema)
         val cursorUsers = db.rawQuery("SELECT COUNT(*) FROM ${DatabaseHelper.TABLE_USERS} WHERE ${DatabaseHelper.COLUMN_USER_ROLE} != 'admin'", null)
         if (cursorUsers.moveToFirst()) {
             tvAdminTotalUsers.text = cursorUsers.getInt(0).toString()
         }
         cursorUsers.close()
 
-        // Sumar Kilos
-        val cursorKilos = db.rawQuery("SELECT SUM(${DatabaseHelper.COLUMN_REPORT_PESO}) FROM ${DatabaseHelper.TABLE_REPORTS} WHERE ${DatabaseHelper.COLUMN_REPORT_STATUS} = 'Aprobado'", null)
+        // 2. Sumar Kilos (BLINDADO: Solo suma los kilos de los reportes aprobados en contenedores GLOBALES)
+        val queryKilos = """
+            SELECT SUM(r.${DatabaseHelper.COLUMN_REPORT_PESO}) 
+            FROM ${DatabaseHelper.TABLE_REPORTS} r 
+            INNER JOIN ${DatabaseHelper.TABLE_PUNTOS} p ON r.${DatabaseHelper.COLUMN_REPORT_PUNTO_ID} = p.${DatabaseHelper.COLUMN_PUNTO_ID}
+            INNER JOIN ${DatabaseHelper.TABLE_COMMUNITIES} c ON p.${DatabaseHelper.COLUMN_PUNTO_COMUNIDAD_ID} = c.${DatabaseHelper.COLUMN_COM_ID}
+            WHERE r.${DatabaseHelper.COLUMN_REPORT_STATUS} = 'Aprobado' 
+            AND c.${DatabaseHelper.COLUMN_COM_TIPO} = 'Global'
+        """.trimIndent()
+
+        val cursorKilos = db.rawQuery(queryKilos, null)
         if (cursorKilos.moveToFirst()) {
             val totalKilos = cursorKilos.getDouble(0)
             tvAdminTotalKilos.text = String.format("%.1f", totalKilos)
         }
         cursorKilos.close()
 
-        // Contar Pendientes
-        val cursorPendientes = db.rawQuery("SELECT COUNT(*) FROM ${DatabaseHelper.TABLE_REPORTS} WHERE ${DatabaseHelper.COLUMN_REPORT_STATUS} = 'Pendiente'", null)
+        // 3. Contar Pendientes (BLINDADO: Solo cuenta tickets de contenedores GLOBALES)
+        val queryPendientes = """
+            SELECT COUNT(r.${DatabaseHelper.COLUMN_REPORT_ID}) 
+            FROM ${DatabaseHelper.TABLE_REPORTS} r 
+            INNER JOIN ${DatabaseHelper.TABLE_PUNTOS} p ON r.${DatabaseHelper.COLUMN_REPORT_PUNTO_ID} = p.${DatabaseHelper.COLUMN_PUNTO_ID}
+            INNER JOIN ${DatabaseHelper.TABLE_COMMUNITIES} c ON p.${DatabaseHelper.COLUMN_PUNTO_COMUNIDAD_ID} = c.${DatabaseHelper.COLUMN_COM_ID}
+            WHERE r.${DatabaseHelper.COLUMN_REPORT_STATUS} = 'Pendiente' 
+            AND c.${DatabaseHelper.COLUMN_COM_TIPO} = 'Global'
+        """.trimIndent()
+
+        val cursorPendientes = db.rawQuery(queryPendientes, null)
         if (cursorPendientes.moveToFirst()) {
             tvAdminPendientes.text = cursorPendientes.getInt(0).toString()
         }
@@ -98,7 +116,7 @@ class AdminDashActivity : AppCompatActivity() {
     private fun cerrarSesion() {
         val prefs = getSharedPreferences("SesionEco", Context.MODE_PRIVATE)
         prefs.edit().clear().apply()
-        Toast.makeText(this, "Sesión de Administrador cerrada", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Sesion de Administrador cerrada", Toast.LENGTH_SHORT).show()
 
         val intent = Intent(this, LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

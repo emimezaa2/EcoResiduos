@@ -34,13 +34,16 @@ class AdminBitacoraActivity : AppCompatActivity() {
 
         val query = """
             SELECT r.${DatabaseHelper.COLUMN_REPORT_ID}, u.${DatabaseHelper.COLUMN_USER_NAME}, 
-                   r.${DatabaseHelper.COLUMN_REPORT_PESO}, r.${DatabaseHelper.COLUMN_REPORT_TIPO}, 
-                   r.${DatabaseHelper.COLUMN_REPORT_STATUS} 
+                   r.${DatabaseHelper.COLUMN_REPORT_PESO}, r.${DatabaseHelper.COLUMN_REPORT_TIPO},
+                   r.${DatabaseHelper.COLUMN_REPORT_STATUS}
             FROM ${DatabaseHelper.TABLE_REPORTS} r 
-            INNER JOIN ${DatabaseHelper.TABLE_USERS} u 
-            ON r.${DatabaseHelper.COLUMN_REPORT_USER_ID} = u.${DatabaseHelper.COLUMN_USER_ID}
+            INNER JOIN ${DatabaseHelper.TABLE_USERS} u ON r.${DatabaseHelper.COLUMN_REPORT_USER_ID} = u.${DatabaseHelper.COLUMN_USER_ID} 
+            INNER JOIN ${DatabaseHelper.TABLE_PUNTOS} p ON r.${DatabaseHelper.COLUMN_REPORT_PUNTO_ID} = p.${DatabaseHelper.COLUMN_PUNTO_ID}
+            INNER JOIN ${DatabaseHelper.TABLE_COMMUNITIES} c ON p.${DatabaseHelper.COLUMN_PUNTO_COMUNIDAD_ID} = c.${DatabaseHelper.COLUMN_COM_ID}
+            WHERE r.${DatabaseHelper.COLUMN_REPORT_STATUS} != 'Pendiente' 
+            AND c.${DatabaseHelper.COLUMN_COM_TIPO} = 'Global'
             ORDER BY r.${DatabaseHelper.COLUMN_REPORT_ID} DESC
-        """
+        """.trimIndent()
 
         val cursor = db.rawQuery(query, null)
 

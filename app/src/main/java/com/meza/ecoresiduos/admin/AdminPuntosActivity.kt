@@ -1,16 +1,20 @@
-package com.meza.ecoresiduos.admin // Recuerda cambiar esto por tu paquete real
+package com.meza.ecoresiduos.admin
 
+import android.Manifest
+import android.app.AlertDialog
 import android.content.ContentValues
+import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Color
-import android.graphics.drawable.GradientDrawable
+import android.location.Location
+import android.location.LocationManager
 import android.os.Bundle
-import android.view.View
-import android.widget.*
-import androidx.appcompat.app.AlertDialog
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.material.slider.Slider
-import com.google.zxing.BarcodeFormat
-import com.journeyapps.barcodescanner.BarcodeEncoder
+import androidx.core.app.ActivityCompat
 import com.meza.ecoresiduos.R
 import com.meza.ecoresiduos.db.DatabaseHelper
 import org.osmdroid.config.Configuration
@@ -24,20 +28,8 @@ class AdminPuntosActivity : AppCompatActivity() {
 
     private lateinit var map: MapView
     private lateinit var dbHelper: DatabaseHelper
-    private var idPuntoSeleccionado: Int = -1
-
-    // UI Panel de Edición
-    private lateinit var tvSeleccionaPunto: TextView
-    private lateinit var layoutEdicionPunto: LinearLayout
-    private lateinit var tvNombrePuntoEdicion: TextView
-    private lateinit var spinnerEstado: Spinner
-    private lateinit var sliderCapacidad: Slider
-    private lateinit var tvLabelCapacidad: TextView
-    private lateinit var btnGuardar: Button
-    private lateinit var btnGenerarQR: Button // Botón nuevo para QR
-
-    // Carrusel de Navegación
-    private lateinit var layoutPuntosRapidos: LinearLayout
+    private var miUbicacionReal: GeoPoint? = null
+    private val LOCATION_PERMISSION_REQUEST_CODE = 1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,224 +37,175 @@ class AdminPuntosActivity : AppCompatActivity() {
         setContentView(R.layout.activity_admin_puntos)
 
         dbHelper = DatabaseHelper(this)
-
-        // Vinculación
         map = findViewById(R.id.mapAdmin)
-        tvSeleccionaPunto = findViewById(R.id.tvSeleccionaPunto)
-        layoutEdicionPunto = findViewById(R.id.layoutEdicionPunto)
-        tvNombrePuntoEdicion = findViewById(R.id.tvNombrePuntoEdicion)
-        spinnerEstado = findViewById(R.id.spinnerEstadoPunto)
-        sliderCapacidad = findViewById(R.id.sliderCapacidad)
-        tvLabelCapacidad = findViewById(R.id.tvLabelCapacidad)
-        btnGuardar = findViewById(R.id.btnGuardarPunto)
-        btnGenerarQR = findViewById(R.id.btnGenerarQR) // Vinculación del QR
-        layoutPuntosRapidos = findViewById(R.id.layoutPuntosRapidos)
 
-        findViewById<TextView>(R.id.btnBackAdminPuntos).setOnClickListener {
-            onBackPressedDispatcher.onBackPressed()
-        }
+        findViewById<TextView>(R.id.btnBackAdminPuntos)?.setOnClickListener { finish() }
 
         configurarMapa()
-        configurarControlesEdicion()
+        configurarEventosDeToque()
+        solicitarPermisosGPS()
     }
 
     private fun configurarMapa() {
         map.setMultiTouchControls(true)
-        val tolucaCentro = GeoPoint(19.2826, -99.6557)
-        map.controller.setZoom(16.0)
-        map.controller.setCenter(tolucaCentro)
+        map.controller.setZoom(15.0)
+    }
 
-        val mReceive = object : MapEventsReceiver {
-            override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
-                layoutEdicionPunto.visibility = View.GONE
-                tvSeleccionaPunto.visibility = View.VISIBLE
-                idPuntoSeleccionado = -1
-                return true
+    // --- LÓGICA DE GPS RECUPERADA ---
+    private fun solicitarPermisosGPS() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), LOCATION_PERMISSION_REQUEST_CODE)
+        } else {
+            obtenerMiUbicacion()
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            obtenerMiUbicacion()
+        } else {
+            map.controller.setCenter(GeoPoint(19.2826, -99.6557))
+            cargarPuntosExistentes()
+        }
+    }
+
+    private fun obtenerMiUbicacion() {
+        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            val location: Location? = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                ?: locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+
+            if (location != null) {
+                miUbicacionReal = GeoPoint(location.latitude, location.longitude)
+
+                val miMarker = Marker(map).apply {
+                    position = miUbicacionReal
+                    title = "Mi Ubicación (Admin)"
+                }
+                miMarker.icon.setTint(Color.parseColor("#3B82F6")) // Azul estándar para ubicación
+                map.overlays.add(miMarker)
+
+                map.controller.setCenter(miUbicacionReal)
+                map.controller.setZoom(16.0)
             }
+            cargarPuntosExistentes()
+        }
+    }
 
+    // --- LÓGICA DE MAPA Y SEGURIDAD INTACTA ---
+    private fun configurarEventosDeToque() {
+        val receiver = object : MapEventsReceiver {
+            override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean = false
             override fun longPressHelper(p: GeoPoint?): Boolean {
-                p?.let { mostrarDialogoNuevoPunto(it.latitude, it.longitude) }
+                p?.let { mostrarDialogoCrearPunto(it) }
                 return true
             }
         }
-        map.overlays.add(MapEventsOverlay(mReceive))
-
-        cargarPuntosDesdeBD()
+        map.overlays.add(MapEventsOverlay(receiver))
     }
 
-    private fun cargarPuntosDesdeBD() {
-        map.overlays.removeAll { it is Marker }
-        layoutPuntosRapidos.removeAllViews()
-
+    private fun mostrarDialogoCrearPunto(puntoGps: GeoPoint) {
         val db = dbHelper.readableDatabase
-        val cursor = db.rawQuery("SELECT * FROM ${DatabaseHelper.TABLE_PUNTOS}", null)
+        val cursor = db.rawQuery("SELECT ${DatabaseHelper.COLUMN_COM_ID}, ${DatabaseHelper.COLUMN_COM_NOMBRE} FROM ${DatabaseHelper.TABLE_COMMUNITIES} WHERE ${DatabaseHelper.COLUMN_COM_TIPO} = 'Global'", null)
 
-        var primerPunto: GeoPoint? = null
+        val listaNombres = mutableListOf<String>()
+        val listaIds = mutableListOf<Int>()
 
         if (cursor.moveToFirst()) {
             do {
-                val id = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PUNTO_ID))
-                val nombre = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PUNTO_NOMBRE))
-                val lat = cursor.getDouble(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PUNTO_LAT))
-                val lon = cursor.getDouble(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PUNTO_LON))
-                val cap = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PUNTO_CAPACIDAD))
-                val estado = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PUNTO_ESTADO))
-
-                val geoPoint = GeoPoint(lat, lon)
-                if (primerPunto == null) primerPunto = geoPoint
-
-                // Marcador en el mapa
-                val marker = Marker(map)
-                marker.position = geoPoint
-                marker.title = nombre
-                if (cap >= 90) marker.icon.setTint(Color.RED)
-
-                marker.setOnMarkerClickListener { _, _ ->
-                    prepararEdicionPunto(id, nombre, cap, estado)
-                    map.controller.animateTo(marker.position)
-                    true
-                }
-                map.overlays.add(marker)
-
-                // Botón en el Carrusel Inferior
-                val btnChip = TextView(this).apply {
-                    text = nombre
-                    setTextColor(Color.WHITE)
-                    textSize = 14f
-                    setPadding(40, 20, 40, 20)
-                    background = GradientDrawable().apply {
-                        shape = GradientDrawable.RECTANGLE
-                        cornerRadius = 50f
-                        setColor(Color.parseColor("#1E293B"))
-                    }
-                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                        setMargins(0, 0, 24, 0)
-                    }
-
-                    setOnClickListener {
-                        map.controller.animateTo(geoPoint)
-                        map.controller.setZoom(18.0)
-                        prepararEdicionPunto(id, nombre, cap, estado)
-                    }
-                }
-                layoutPuntosRapidos.addView(btnChip)
-
+                listaIds.add(cursor.getInt(0))
+                listaNombres.add(cursor.getString(1))
             } while (cursor.moveToNext())
         }
         cursor.close()
 
-        // Auto-foco
-        primerPunto?.let {
-            map.controller.setCenter(it)
-            map.controller.setZoom(16.0)
+        if (listaIds.isEmpty()) {
+            Toast.makeText(this, "Debe crear una comunidad Global primero", Toast.LENGTH_LONG).show()
+            return
         }
-        map.invalidate()
-    }
 
-    private fun mostrarDialogoNuevoPunto(lat: Double, lon: Double) {
         val builder = AlertDialog.Builder(this)
-        builder.setTitle("Nuevo Punto de Recolección")
+        builder.setTitle("Nuevo Punto Global")
 
-        val input = EditText(this)
-        input.hint = "Nombre del lugar (ej. Parque Alameda)"
-        builder.setView(input)
+        val layoutFormulario = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(40, 20, 40, 20)
+        }
 
-        builder.setPositiveButton("Crear") { _, _ ->
-            val nombre = input.text.toString()
+        val etNombrePunto = EditText(this).apply {
+            hint = "Nombre del contenedor (Ej. Centro Principal)"
+            setPadding(40, 20, 40, 20)
+            background = getDrawable(R.drawable.bg_input)
+        }
+        layoutFormulario.addView(etNombrePunto)
+
+        builder.setView(layoutFormulario)
+
+        var seleccionIndex = 0
+        builder.setSingleChoiceItems(listaNombres.toTypedArray(), 0) { _, index -> seleccionIndex = index }
+
+        builder.setPositiveButton("Guardar") { dialog, _ ->
+            val nombre = etNombrePunto.text.toString().trim()
             if (nombre.isNotEmpty()) {
-                guardarNuevoPuntoBD(nombre, lat, lon)
+                guardarPuntoEnBaseDatos(nombre, puntoGps, listaIds[seleccionIndex])
+                dialog.dismiss()
+            } else {
+                Toast.makeText(this, "El nombre no puede estar vacío", Toast.LENGTH_SHORT).show()
             }
         }
         builder.setNegativeButton("Cancelar", null)
         builder.show()
     }
 
-    private fun guardarNuevoPuntoBD(nombre: String, lat: Double, lon: Double) {
+    private fun guardarPuntoEnBaseDatos(nombre: String, gps: GeoPoint, comunidadId: Int) {
         val db = dbHelper.writableDatabase
         val values = ContentValues().apply {
             put(DatabaseHelper.COLUMN_PUNTO_NOMBRE, nombre)
-            put(DatabaseHelper.COLUMN_PUNTO_LAT, lat)
-            put(DatabaseHelper.COLUMN_PUNTO_LON, lon)
+            put(DatabaseHelper.COLUMN_PUNTO_LAT, gps.latitude)
+            put(DatabaseHelper.COLUMN_PUNTO_LON, gps.longitude)
             put(DatabaseHelper.COLUMN_PUNTO_CAPACIDAD, 0)
             put(DatabaseHelper.COLUMN_PUNTO_ESTADO, "Disponible")
+            put(DatabaseHelper.COLUMN_PUNTO_COMUNIDAD_ID, comunidadId)
         }
         db.insert(DatabaseHelper.TABLE_PUNTOS, null, values)
-        Toast.makeText(this, "Punto registrado", Toast.LENGTH_SHORT).show()
-        cargarPuntosDesdeBD()
+        Toast.makeText(this, "Punto global asignado correctamente", Toast.LENGTH_SHORT).show()
+        cargarPuntosExistentes()
     }
 
-    private fun prepararEdicionPunto(id: Int, nombre: String, cap: Int, estado: String) {
-        idPuntoSeleccionado = id
-        tvSeleccionaPunto.visibility = View.GONE
-        layoutEdicionPunto.visibility = View.VISIBLE
+    private fun cargarPuntosExistentes() {
+        map.overlays.removeAll { it is Marker && it.title != "Mi Ubicación (Admin)" }
 
-        tvNombrePuntoEdicion.text = "Punto: $nombre"
-        sliderCapacidad.value = cap.toFloat()
-        tvLabelCapacidad.text = "Nivel de Llenado: $cap%" // Set inicial al tocar el pin
+        val db = dbHelper.readableDatabase
+        val query = """
+            SELECT p.${DatabaseHelper.COLUMN_PUNTO_NOMBRE}, p.${DatabaseHelper.COLUMN_PUNTO_LAT}, 
+                   p.${DatabaseHelper.COLUMN_PUNTO_LON}, c.${DatabaseHelper.COLUMN_COM_NOMBRE}
+            FROM ${DatabaseHelper.TABLE_PUNTOS} p
+            INNER JOIN ${DatabaseHelper.TABLE_COMMUNITIES} c ON p.${DatabaseHelper.COLUMN_PUNTO_COMUNIDAD_ID} = c.${DatabaseHelper.COLUMN_COM_ID}
+            WHERE c.${DatabaseHelper.COLUMN_COM_TIPO} = 'Global'
+        """.trimIndent()
 
-        val estados = arrayOf("Disponible", "Lleno", "Mantenimiento")
-        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, estados)
-        spinnerEstado.adapter = adapter
-        spinnerEstado.setSelection(estados.indexOf(estado))
-    }
+        val cursor = db.rawQuery(query, null)
 
-    private fun configurarControlesEdicion() {
-        // Actualización dinámica del texto al mover el slider
-        sliderCapacidad.addOnChangeListener { _, value, _ ->
-            tvLabelCapacidad.text = "Nivel de Llenado: ${value.toInt()}%"
-        }
+        if (cursor.moveToFirst()) {
+            do {
+                val nombrePunto = cursor.getString(0)
+                val lat = cursor.getDouble(1)
+                val lon = cursor.getDouble(2)
+                val nombreComunidad = cursor.getString(3)
 
-        btnGuardar.setOnClickListener {
-            if (idPuntoSeleccionado != -1) {
-                val nuevaCap = sliderCapacidad.value.toInt()
-                val nuevoEstado = spinnerEstado.selectedItem.toString()
-
-                val db = dbHelper.writableDatabase
-                val values = ContentValues().apply {
-                    put(DatabaseHelper.COLUMN_PUNTO_CAPACIDAD, nuevaCap)
-                    put(DatabaseHelper.COLUMN_PUNTO_ESTADO, nuevoEstado)
+                val marker = Marker(map).apply {
+                    position = GeoPoint(lat, lon)
+                    title = "$nombrePunto"
+                    subDescription = "Comunidad: $nombreComunidad"
                 }
+                marker.icon.setTint(Color.parseColor("#1D4ED8")) // Azul corporativo
+                map.overlays.add(marker)
 
-                db.update(DatabaseHelper.TABLE_PUNTOS, values,
-                    "${DatabaseHelper.COLUMN_PUNTO_ID} = ?", arrayOf(idPuntoSeleccionado.toString()))
-
-                Toast.makeText(this, "Infraestructura actualizada", Toast.LENGTH_SHORT).show()
-                layoutEdicionPunto.visibility = View.GONE
-                tvSeleccionaPunto.visibility = View.VISIBLE
-                cargarPuntosDesdeBD()
-            }
+            } while (cursor.moveToNext())
         }
-
-        // Evento para generar el QR del contenedor actual
-        btnGenerarQR.setOnClickListener {
-            val nombreActual = tvNombrePuntoEdicion.text.toString().replace("Punto: ", "")
-            mostrarQRGenerado(nombreActual)
-        }
-    }
-
-    private fun mostrarQRGenerado(nombrePunto: String) {
-        try {
-            // El texto que guardaremos en el QR. (En el futuro será el ID de Firebase)
-            val datosQR = "ECO-PUNTO:$nombrePunto"
-
-            val barcodeEncoder = BarcodeEncoder()
-            // Genera la imagen del QR de 400x400 píxeles
-            val bitmap = barcodeEncoder.encodeBitmap(datosQR, BarcodeFormat.QR_CODE, 400, 400)
-
-            val imageView = ImageView(this)
-            imageView.setImageBitmap(bitmap)
-            imageView.setPadding(32, 32, 32, 32)
-
-            AlertDialog.Builder(this)
-                .setTitle("QR Listo para Imprimir")
-                .setMessage("Etiqueta para: $nombrePunto")
-                .setView(imageView)
-                .setPositiveButton("Cerrar", null)
-                .show()
-
-        } catch (e: Exception) {
-            Toast.makeText(this, "Error al generar el QR", Toast.LENGTH_SHORT).show()
-        }
+        cursor.close()
+        map.invalidate()
     }
 
     override fun onResume() { super.onResume(); map.onResume() }

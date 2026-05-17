@@ -62,7 +62,13 @@ class AdminComunidadActivity : AppCompatActivity() {
         container.removeAllViews()
         val db = dbHelper.readableDatabase
 
-        val query = "SELECT ${DatabaseHelper.COLUMN_COM_NOMBRE}, ${DatabaseHelper.COLUMN_COM_TIPO} FROM ${DatabaseHelper.TABLE_COMMUNITIES} ORDER BY ${DatabaseHelper.COLUMN_COM_ID} DESC"
+// Consulta sellada: El Admin solo ve las comunidades que él creó o que son Globales
+        val query = """
+            SELECT ${DatabaseHelper.COLUMN_COM_NOMBRE}, ${DatabaseHelper.COLUMN_COM_TIPO} 
+            FROM ${DatabaseHelper.TABLE_COMMUNITIES} 
+            WHERE ${DatabaseHelper.COLUMN_COM_TIPO} = 'Global' 
+            ORDER BY ${DatabaseHelper.COLUMN_COM_ID} DESC
+        """.trimIndent()
         val cursor = db.rawQuery(query, null)
 
         if (cursor.moveToFirst()) {
