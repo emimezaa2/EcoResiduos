@@ -180,10 +180,12 @@ class UserImpactoActivity : AppCompatActivity() {
     private fun crearTarjetaRegistro(peso: Double, tipo: String, fecha: String, status: String, foto: String) {
         val card = MaterialCardView(this).apply {
             val params = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-            params.setMargins(0, 0, 0, 24)
+            // Aumentamos el margen inferior para separar más las tarjetas entre sí (de 24 a 32)
+            params.setMargins(0, 0, 0, 32)
             layoutParams = params
             radius = 48f
-            cardElevation = 0f
+            // Le damos una ligera sombra para que resalte más del fondo
+            cardElevation = 4f
             strokeWidth = 2
             setStrokeColor(android.content.res.ColorStateList.valueOf(Color.parseColor("#E2E8F0")))
             setCardBackgroundColor(Color.WHITE)
@@ -191,12 +193,14 @@ class UserImpactoActivity : AppCompatActivity() {
 
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            setPadding(32, 32, 32, 32)
+            // Aumentamos el "relleno" interno para que la tarjeta sea más alta y espaciosa (de 32 a 48)
+            setPadding(48, 48, 48, 48)
             gravity = Gravity.CENTER_VERTICAL
         }
 
         val img = ImageView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(120, 120)
+            // Hicimos la imagen mucho más grande (de 120x120 a 180x180)
+            layoutParams = LinearLayout.LayoutParams(180, 180)
             scaleType = ImageView.ScaleType.CENTER_CROP
             val file = File(foto)
             if (file.exists()) {
@@ -209,20 +213,25 @@ class UserImpactoActivity : AppCompatActivity() {
         val col = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             val paramsCol = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            paramsCol.marginStart = 24
+            // Separamos un poco más el texto de la foto (de 24 a 32)
+            paramsCol.marginStart = 32
             layoutParams = paramsCol
         }
 
         val t1 = TextView(this).apply {
             text = "$peso kg de $tipo"
-            textSize = 15f
+            // Letra del título más grande (de 15f a 18f)
+            textSize = 18f
             setTypeface(Typeface.DEFAULT_BOLD)
             setTextColor(Color.parseColor("#0F172A"))
         }
 
         val t2 = TextView(this).apply {
             text = fecha
-            textSize = 12f
+            // Letra de la fecha más grande (de 12f a 14f)
+            textSize = 14f
+            // Le damos un pequeño margen superior para separarla del título
+            setPadding(0, 8, 0, 0)
             setTextColor(Color.parseColor("#64748B"))
         }
 
@@ -231,9 +240,11 @@ class UserImpactoActivity : AppCompatActivity() {
 
         val badge = TextView(this).apply {
             text = status
-            textSize = 10f
+            // Letra de la etiqueta más grande (de 10f a 12f)
+            textSize = 12f
             setTypeface(Typeface.DEFAULT_BOLD)
-            setPadding(20, 8, 20, 8)
+            // Hacemos el recuadro de la etiqueta de estado más "gordito"
+            setPadding(24, 12, 24, 12)
             setTextColor(Color.WHITE)
             background = GradientDrawable().apply {
                 cornerRadius = 100f

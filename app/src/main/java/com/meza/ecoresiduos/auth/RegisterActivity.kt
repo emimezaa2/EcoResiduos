@@ -40,6 +40,13 @@ class RegisterActivity : AppCompatActivity() {
                 return@setOnClickListener // Detenemos la ejecución si falta algo
             }
 
+            // Validación de formato de correo
+            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                etEmail.error = "Ingresa un correo electrónico válido"
+                etEmail.requestFocus() // Enfoca la caja de texto para que el usuario corrija
+                return@setOnClickListener
+            }
+
             registrarUsuarioEnBaseDeDatos(name, email, password)
         }
     }

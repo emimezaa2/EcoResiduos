@@ -1,6 +1,6 @@
 package com.meza.ecoresiduos.auth
 
-import android.content.ContentValues // <-- IMPORTANTE ASEGURAR QUE ESTÉ
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -31,10 +31,20 @@ class LoginActivity : AppCompatActivity() {
         val btnLogin = findViewById<Button>(R.id.btnUserLogin)
         val tvRegister = findViewById<TextView>(R.id.tvGoToRegister)
 
+        // NUEVO: Referencia al botón de Olvidé mi contraseña
+        val tvForgot = findViewById<TextView>(R.id.tvForgotPassword)
+
+        // Clic para ir a Registro
         tvRegister.setOnClickListener {
             startActivity(Intent(this, RegisterActivity::class.java))
         }
 
+        // NUEVO: Clic para abrir la pantalla de Recuperar Contraseña
+        tvForgot.setOnClickListener {
+            startActivity(Intent(this, ForgotPasswordActivity::class.java))
+        }
+
+        // Clic de Iniciar Sesión
         btnLogin.setOnClickListener {
             val email = etEmail.text.toString().trim()
             val password = etPassword.text.toString().trim()
@@ -44,14 +54,19 @@ class LoginActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
+            // Validación de formato de correo (omitiendo la regla si es el admin maestro "ad")
+            if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() && email != "ad") {
+                etEmail.error = "Ingresa un correo electrónico válido"
+                etEmail.requestFocus() // Enfoca la caja de texto para que el usuario corrija
+                return@setOnClickListener
+            }
+
             validarAcceso(email, password)
         }
     }
 
-
     private fun crearAdminSiNoExiste() {
         val db = dbHelper.writableDatabase
-
 
         val cursor = db.rawQuery("SELECT * FROM ${DatabaseHelper.TABLE_USERS} WHERE ${DatabaseHelper.COLUMN_USER_ROLE} = 'admin'", null)
 
@@ -72,7 +87,6 @@ class LoginActivity : AppCompatActivity() {
         }
         cursor.close()
     }
-
 
     private fun validarAcceso(email: String, password: String) {
         val db = dbHelper.readableDatabase

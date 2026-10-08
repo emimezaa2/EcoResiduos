@@ -110,6 +110,10 @@
         <activity
             android:name=".user.CreadorValidarActivity"
             android:exported="false" />
+        <activity
+            android:name=".auth.ForgotPasswordActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"/>
 
     </application>
 

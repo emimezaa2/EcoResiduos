@@ -90,7 +90,7 @@
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="32dp"
+                android:layout_marginBottom="16dp"
                 android:hint="Contraseña"
                 app:boxCornerRadiusBottomEnd="12dp"
                 app:boxCornerRadiusBottomStart="12dp"
@@ -107,6 +107,19 @@
                     android:inputType="textPassword"
                     android:textColor="@color/text_dark" />
             </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- NUEVO BOTÓN DE OLVIDÉ CONTRASEÑA AQUÍ -->
+            <TextView
+                android:id="@+id/tvForgotPassword"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:layout_marginBottom="24dp"
+                android:text="¿Olvidaste tu contraseña?"
+                android:textColor="@color/green_primary"
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true"/>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnUserLogin"
